@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/* Raw palette, sampled from the wedding invitation artwork. Do not add new
+   colors here — pick from this list, or ask before introducing a new one. */
+:root {
+  --cream: #fef6ee; /* Cream sky — light-mode background */
+  --night: #312c2c; /* Night sky — dark-mode background */
+  --dahlia: #81270b; /* Deep dahlia — light-mode primary (headings, links, buttons) */
+  --ember: #e7823b; /* Burnt orange — dark-mode primary (dahlia's dark-mode counterpart) */
+  --gold: #eda55e; /* Golden — badges, highlights */
+  --pine: #474930; /* Muted pine — quiet secondary, success/confirmed states */
+
+  /* Semantic tokens that flip with light/dark mode. */
+  --background: var(--cream);
+  --foreground: var(--dahlia);
+  --accent: var(--dahlia);
+
+  /* Background artwork: mobile + light by default, overridden below. */
+  --bg-image: url("/backgrounds/bg-mobile-light.webp");
+}
+
+/* Desktop viewport: swap to the wide artwork file. */
+@media (min-width: 768px) {
+  :root {
+    --bg-image: url("/backgrounds/bg-desktop-light.webp");
+  }
+}
+
+/* Dark mode: swap semantic tokens and the mobile artwork file. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: var(--night);
+    --foreground: var(--cream);
+    --accent: var(--ember);
+    --bg-image: url("/backgrounds/bg-mobile-dark.webp");
+  }
+}
+
+/* Dark mode + desktop: swap to the wide dark artwork file. */
+@media (prefers-color-scheme: dark) and (min-width: 768px) {
+  :root {
+    --bg-image: url("/backgrounds/bg-desktop-dark.webp");
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-cream: var(--cream);
+  --color-night: var(--night);
+  --color-dahlia: var(--dahlia);
+  --color-ember: var(--ember);
+  --color-gold: var(--gold);
+  --color-pine: var(--pine);
+  --font-heading: var(--font-cormorant);
+  --font-script: var(--font-pinyon);
+}
+
+body {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Fixed, full-viewport artwork, pinned behind everything else via a
+   negative z-index. `isolation: isolate` on body above gives this a
+   well-defined stacking context to sit at the bottom of, so it can't
+   accidentally end up painted over other content. */
+.site-background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--bg-image);
+  background-repeat: no-repeat;
+  background-position: bottom center;
+  background-size: cover;
+}
