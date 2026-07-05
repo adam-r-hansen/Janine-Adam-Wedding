@@ -1,9 +1,46 @@
 import PageContainer from "@/components/PageContainer";
 import Panel from "@/components/Panel";
 import EventCard from "@/components/EventCard";
-import { scheduleEvents } from "@/lib/placeholder-data";
+import { supabase } from "@/lib/supabase";
+import { formatEventDate, formatTime } from "@/lib/format";
+import type { ScheduleEvent } from "@/lib/placeholder-data";
 
-export default function SchedulePage() {
+export const dynamic = "force-dynamic";
+
+interface EventRow {
+  id: string;
+  title: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  venue_name: string;
+  address: string;
+  description: string;
+  dress_code: string;
+}
+
+export default async function SchedulePage() {
+  const { data, error } = await supabase
+    .from("events")
+    .select(
+      "id, title, date, start_time, end_time, venue_name, address, description, dress_code"
+    )
+    .order("sort_order", { ascending: true })
+    .returns<EventRow[]>();
+
+  const events: ScheduleEvent[] =
+    data?.map((row) => ({
+      id: row.id,
+      name: row.title,
+      date: formatEventDate(row.date),
+      startTime: formatTime(row.start_time),
+      endTime: formatTime(row.end_time),
+      venueName: row.venue_name,
+      address: row.address,
+      description: row.description,
+      dressCode: row.dress_code,
+    })) ?? [];
+
   return (
     <PageContainer>
       <Panel className="p-8 text-center sm:p-10">
@@ -15,11 +52,19 @@ export default function SchedulePage() {
         </p>
       </Panel>
 
-      <div className="flex flex-col gap-6">
-        {scheduleEvents.map((event) => (
-          <EventCard key={event.id} event={event} />
-        ))}
-      </div>
+      {error ? (
+        <Panel className="p-8 text-center">
+          <p className="text-sm text-foreground/90">
+            Something went wrong loading the schedule. Please try again in a bit.
+          </p>
+        </Panel>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {events.map((event) => (
+            <EventCard key={event.id} event={event} />
+          ))}
+        </div>
+      )}
     </PageContainer>
   );
 }

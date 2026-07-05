@@ -1,9 +1,37 @@
 import PageContainer from "@/components/PageContainer";
 import Panel from "@/components/Panel";
 import ActivityFilter from "@/components/ActivityFilter";
-import { activities } from "@/lib/placeholder-data";
+import { supabase } from "@/lib/supabase";
+import type { Activity } from "@/lib/placeholder-data";
 
-export default function ThingsToDoPage() {
+export const dynamic = "force-dynamic";
+
+interface ActivityRow {
+  id: string;
+  name: string;
+  category: Activity["category"];
+  blurb: string;
+  neighborhood: string;
+  link_url: string;
+}
+
+export default async function ThingsToDoPage() {
+  const { data, error } = await supabase
+    .from("activities")
+    .select("id, name, category, blurb, neighborhood, link_url")
+    .order("sort_order", { ascending: true })
+    .returns<ActivityRow[]>();
+
+  const activities: Activity[] =
+    data?.map((row) => ({
+      id: row.id,
+      name: row.name,
+      category: row.category,
+      blurb: row.blurb,
+      neighborhood: row.neighborhood,
+      linkUrl: row.link_url,
+    })) ?? [];
+
   return (
     <PageContainer>
       <Panel className="p-8 text-center sm:p-10">
@@ -15,7 +43,15 @@ export default function ThingsToDoPage() {
         </p>
       </Panel>
 
-      <ActivityFilter activities={activities} />
+      {error ? (
+        <Panel className="p-8 text-center">
+          <p className="text-sm text-foreground/90">
+            Something went wrong loading things to do. Please try again in a bit.
+          </p>
+        </Panel>
+      ) : (
+        <ActivityFilter activities={activities} />
+      )}
     </PageContainer>
   );
 }

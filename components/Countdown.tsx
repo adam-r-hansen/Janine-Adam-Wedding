@@ -2,11 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-// 6:00 PM Pacific time on the wedding day.
-const WEDDING_MOMENT = new Date("2026-10-17T18:00:00-07:00").getTime();
-
-function getTimeLeft() {
-  const msLeft = Math.max(WEDDING_MOMENT - Date.now(), 0);
+function getTimeLeft(targetMs: number) {
+  const msLeft = Math.max(targetMs - Date.now(), 0);
   return {
     msLeft,
     days: Math.floor(msLeft / (1000 * 60 * 60 * 24)),
@@ -16,15 +13,17 @@ function getTimeLeft() {
   };
 }
 
-export default function Countdown() {
+export default function Countdown({ targetDate }: { targetDate: string }) {
+  const targetMs = new Date(targetDate).getTime();
+
   // Computed once up front (server render and first client render both call
   // this) then refreshed every second on the client via the interval below.
-  const [time, setTime] = useState(getTimeLeft);
+  const [time, setTime] = useState(() => getTimeLeft(targetMs));
 
   useEffect(() => {
-    const id = setInterval(() => setTime(getTimeLeft()), 1000);
+    const id = setInterval(() => setTime(getTimeLeft(targetMs)), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [targetMs]);
 
   if (time.msLeft <= 0) {
     return (

@@ -1,7 +1,32 @@
 import Countdown from "@/components/Countdown";
 import Panel from "@/components/Panel";
+import { supabase } from "@/lib/supabase";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+const SETTINGS_KEYS = [
+  "welcome_message",
+  "wedding_date_label",
+  "wedding_datetime",
+  "venue_line",
+] as const;
+
+interface SettingRow {
+  key: string;
+  value: string;
+}
+
+export default async function Home() {
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("key, value")
+    .in("key", SETTINGS_KEYS)
+    .returns<SettingRow[]>();
+
+  const settings = Object.fromEntries(
+    (data ?? []).map((row) => [row.key, row.value])
+  );
+
   return (
     <div className="flex flex-1 flex-col items-center px-4 pb-24 pt-10 sm:pt-16">
       <Panel className="w-full max-w-lg p-8 text-center sm:p-10">
@@ -13,23 +38,29 @@ export default function Home() {
           ADAM
         </h1>
 
-        <p className="mt-4 font-heading text-lg tracking-wide text-foreground sm:text-xl">
-          Saturday, October 17, 2026
-        </p>
+        {error ? (
+          <p className="mt-6 text-sm text-foreground/90">
+            Something went wrong loading this page. Please try again in a bit.
+          </p>
+        ) : (
+          <>
+            <p className="mt-4 font-heading text-lg tracking-wide text-foreground sm:text-xl">
+              {settings.wedding_date_label}
+            </p>
 
-        <div className="mt-8">
-          <Countdown />
-        </div>
+            <div className="mt-8">
+              <Countdown targetDate={settings.wedding_datetime} />
+            </div>
 
-        <p className="mt-8 text-xs uppercase tracking-[0.3em] text-foreground/70 sm:text-sm">
-          University Place, Washington
-        </p>
+            <p className="mt-8 text-xs uppercase tracking-[0.3em] text-foreground/70 sm:text-sm">
+              {settings.venue_line}
+            </p>
 
-        <p className="mt-6 text-base leading-relaxed text-foreground/90">
-          {
-            "We can't wait to celebrate this next chapter surrounded by the people we love most."
-          }
-        </p>
+            <p className="mt-6 text-base leading-relaxed text-foreground/90">
+              {settings.welcome_message}
+            </p>
+          </>
+        )}
       </Panel>
     </div>
   );

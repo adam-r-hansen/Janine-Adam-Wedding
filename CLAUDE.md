@@ -152,12 +152,12 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
 - [ ] Remaining admin editors: settings, events, hotels, activities
 - [ ] Public pages reading live data
       - [x] FAQ
-      - [ ] Home
-      - [ ] Schedule
-      - [ ] Travel
-      - [ ] Things to Do
-      - [ ] RSVP
-      - [ ] Gallery
+      - [x] Home
+      - [x] Schedule
+      - [x] Travel
+      - [x] Things to Do
+      - [ ] RSVP — waiting on the guest-list lookup flow
+      - [ ] Gallery — waiting on Supabase Storage
 - [ ] Guest list + RSVP flow
 - [ ] Gallery + uploads + approval queue
 - [ ] Deploy to Vercel, custom domain, guest password set
