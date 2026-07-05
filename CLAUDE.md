@@ -155,7 +155,22 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
       new file name). `lib/supabase-server.ts` and `lib/supabase-browser.ts`
       are the cookie-aware Supabase clients used for auth; `lib/supabase.ts`
       is unchanged and still just serves the public, anonymous-read pages.
-- [ ] Remaining admin editors: settings, events, hotels, activities
+- [x] Remaining admin editors: settings, events, hotels, activities — all
+      four follow the FAQ editor's Server Action pattern (list, add, inline
+      edit, delete-with-confirmation, up/down reorder via `sort_order`).
+      Two deviations, both content-driven, not template changes:
+      - `/admin/settings` isn't a list — `site_settings` is a fixed set of
+        key/value rows, so it's a single form instead of add/delete/reorder.
+        It also collapses `wedding_date_label` and `wedding_datetime` into
+        one "Wedding date & time" picker; saving derives the human-readable
+        label from the picked instant so the two keys can't drift apart.
+        The picker assumes Pacific time and hardcodes an Oct-appropriate
+        `-07:00` offset rather than pulling in a timezone library — fine
+        for a date that's set once, but would need revisiting if the
+        wedding date ever moved to a different DST season.
+      - `/admin/hotels` and `/admin/things-to-do` show `photo_url` as a
+        plain optional text field (with an inline note) instead of an
+        upload control, per the Photos milestone still being unbuilt.
 - [ ] Public pages reading live data
       - [x] FAQ
       - [x] Home

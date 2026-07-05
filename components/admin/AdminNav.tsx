@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
+  { href: "/admin/settings", label: "Settings", enabled: true },
+  { href: "/admin/events", label: "Events", enabled: true },
+  { href: "/admin/hotels", label: "Hotels", enabled: true },
+  { href: "/admin/things-to-do", label: "Things to Do", enabled: true },
   { href: "/admin/faqs", label: "FAQs", enabled: true },
-  { href: "/admin/settings", label: "Settings", enabled: false },
-  { href: "/admin/events", label: "Events", enabled: false },
-  { href: "/admin/hotels", label: "Hotels", enabled: false },
-  { href: "/admin/things-to-do", label: "Things to Do", enabled: false },
   { href: "/admin/guest-list", label: "Guest List", enabled: false },
   { href: "/admin/rsvps", label: "RSVPs", enabled: false },
   { href: "/admin/photos", label: "Photos", enabled: false },
