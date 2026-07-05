@@ -148,7 +148,13 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
       table-creation SQL checked into this repo; the dashboard is the source
       of truth for schema changes. `seed.sql` (repo root) holds the initial
       content INSERTs only.
-- [ ] Admin login + FAQ editor end-to-end (this becomes the template pattern)
+- [x] Admin login + FAQ editor end-to-end (this becomes the template pattern)
+      — `/admin/login` (Supabase Auth email/password), route-protection for
+      everything under `/admin` lives in `proxy.ts` at the repo root (Next.js
+      16 renamed the old `middleware.ts` convention to `proxy.ts` — same job,
+      new file name). `lib/supabase-server.ts` and `lib/supabase-browser.ts`
+      are the cookie-aware Supabase clients used for auth; `lib/supabase.ts`
+      is unchanged and still just serves the public, anonymous-read pages.
 - [ ] Remaining admin editors: settings, events, hotels, activities
 - [ ] Public pages reading live data
       - [x] FAQ
