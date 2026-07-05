@@ -1,9 +1,16 @@
 import PageContainer from "@/components/PageContainer";
 import Panel from "@/components/Panel";
 import FaqAccordion from "@/components/FaqAccordion";
-import { faqs } from "@/lib/placeholder-data";
+import { supabase } from "@/lib/supabase";
 
-export default function FaqPage() {
+export const dynamic = "force-dynamic";
+
+export default async function FaqPage() {
+  const { data: faqs, error } = await supabase
+    .from("faqs")
+    .select("id, question, answer")
+    .order("sort_order", { ascending: true });
+
   return (
     <PageContainer>
       <Panel className="p-8 text-center sm:p-10">
@@ -15,7 +22,15 @@ export default function FaqPage() {
         </p>
       </Panel>
 
-      <FaqAccordion faqs={faqs} />
+      {error ? (
+        <Panel className="p-8 text-center">
+          <p className="text-sm text-foreground/90">
+            Something went wrong loading the FAQs. Please try again in a bit.
+          </p>
+        </Panel>
+      ) : (
+        <FaqAccordion faqs={faqs ?? []} />
+      )}
     </PageContainer>
   );
 }

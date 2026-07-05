@@ -6,6 +6,27 @@
 export const WEDDING_DATE_LABEL = "Saturday, October 17, 2026";
 export const VENUE_LINE = "University Place, Washington";
 
+// Mirrors the site_settings key/value table. The home page doesn't read
+// this yet (it's still hardcoded JSX), but seed.sql does, so the database
+// starts out matching what the site currently shows.
+export interface SiteSetting {
+  key: string;
+  value: string;
+}
+
+export const siteSettings: SiteSetting[] = [
+  { key: "couple_name_one", value: "Janine" },
+  { key: "couple_name_two", value: "Adam" },
+  { key: "wedding_date_label", value: WEDDING_DATE_LABEL },
+  { key: "wedding_datetime", value: "2026-10-17T18:00:00-07:00" },
+  { key: "venue_line", value: VENUE_LINE },
+  {
+    key: "welcome_message",
+    value:
+      "We can't wait to celebrate this next chapter surrounded by the people we love most.",
+  },
+];
+
 export interface ScheduleEvent {
   id: string;
   name: string;

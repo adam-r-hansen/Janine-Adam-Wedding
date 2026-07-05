@@ -143,10 +143,21 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
 - [ ] Global design foundation: backgrounds, palette, fonts, translucent panel
       component, nav
 - [ ] Password gate (middleware + /enter-password)
-- [ ] Supabase project + tables + RLS
+- [x] Supabase project + tables + RLS — tables were created directly in the
+      Supabase dashboard's SQL Editor to match the schema above. There is no
+      table-creation SQL checked into this repo; the dashboard is the source
+      of truth for schema changes. `seed.sql` (repo root) holds the initial
+      content INSERTs only.
 - [ ] Admin login + FAQ editor end-to-end (this becomes the template pattern)
 - [ ] Remaining admin editors: settings, events, hotels, activities
 - [ ] Public pages reading live data
+      - [x] FAQ
+      - [ ] Home
+      - [ ] Schedule
+      - [ ] Travel
+      - [ ] Things to Do
+      - [ ] RSVP
+      - [ ] Gallery
 - [ ] Guest list + RSVP flow
 - [ ] Gallery + uploads + approval queue
 - [ ] Deploy to Vercel, custom domain, guest password set
