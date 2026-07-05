@@ -55,7 +55,7 @@ export default function AdminLoginPage() {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="rounded-lg border border-dahlia/20 bg-cream px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-accent dark:border-cream/20 dark:bg-night"
+              className="rounded-lg border border-dahlia/20 bg-cream px-3 py-2 text-foreground dark:border-cream/20 dark:bg-night"
             />
           </label>
 
@@ -67,7 +67,7 @@ export default function AdminLoginPage() {
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="rounded-lg border border-dahlia/20 bg-cream px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-accent dark:border-cream/20 dark:bg-night"
+              className="rounded-lg border border-dahlia/20 bg-cream px-3 py-2 text-foreground dark:border-cream/20 dark:bg-night"
             />
           </label>
 

@@ -17,7 +17,7 @@ export interface AdminFaq {
 }
 
 const inputClasses =
-  "rounded-lg border border-dahlia/20 bg-cream px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-accent dark:border-cream/20 dark:bg-night";
+  "rounded-lg border border-dahlia/20 bg-cream px-3 py-2 text-foreground dark:border-cream/20 dark:bg-night";
 
 export default function FaqEditor({ faqs }: { faqs: AdminFaq[] }) {
   const [editingId, setEditingId] = useState<string | null>(null);
