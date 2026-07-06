@@ -142,7 +142,13 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
 - [x] Scaffold Next.js project
 - [ ] Global design foundation: backgrounds, palette, fonts, translucent panel
       component, nav
-- [ ] Password gate (middleware + /enter-password)
+- [x] Password gate (`proxy.ts` + `/enter-password`) — lives in the same
+      `proxy.ts` file that already protected `/admin`, as a first check that
+      now runs for the whole site (including `/admin`, on top of its
+      existing Supabase Auth check). The gate cookie stores a SHA-256 hash
+      of `SITE_PASSWORD`, not the password itself; comparison happens only
+      in `proxy.ts` and the `/enter-password` Server Action, both
+      server-side — `SITE_PASSWORD` is never sent to the browser.
 - [x] Supabase project + tables + RLS — tables were created directly in the
       Supabase dashboard's SQL Editor to match the schema above. There is no
       table-creation SQL checked into this repo; the dashboard is the source
