@@ -9,7 +9,7 @@ const tabs = [
   { href: "/admin/hotels", label: "Hotels", enabled: true },
   { href: "/admin/things-to-do", label: "Things to Do", enabled: true },
   { href: "/admin/faqs", label: "FAQs", enabled: true },
-  { href: "/admin/guest-list", label: "Guest List", enabled: false },
+  { href: "/admin/guest-list", label: "Guest List", enabled: true },
   { href: "/admin/rsvps", label: "RSVPs", enabled: false },
   { href: "/admin/photos", label: "Photos", enabled: true },
 ] as const;

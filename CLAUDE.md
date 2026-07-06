@@ -199,6 +199,22 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
       - [x] Gallery
       - [ ] RSVP — waiting on the guest-list lookup flow
 - [ ] Guest list + RSVP flow
+      - [x] Stage 1: admin guest-list management — `/admin/guest-list` has
+            parties as cards (each with its guests, add/rename/delete —
+            deleting a party warns it removes its guests too and does),
+            add/rename/delete/move-to-another-party for individual guests,
+            and a running "X parties, Y guests" total. Plus CSV import
+            (`party,full_name` columns, matched case-insensitively so
+            typos in casing don't create duplicate parties): shows a
+            preview before writing anything, and is safe to re-run —
+            existing parties get new guests added rather than duplicated,
+            exact-duplicate guests are skipped and counted in the results.
+            `lib/csv.ts` is a small hand-rolled parser (no new dependency)
+            handling quoted fields with commas, escaped quotes, a header
+            row in any capitalization or column order, and blank rows.
+      - [ ] Stage 2: the public RSVP lookup flow itself (guest types their
+            name, finds their party, responds for everyone on it) — not
+            started.
 - [x] Gallery + uploads + approval queue — `/admin/photos` (Our Photos
       upload with per-photo captions; guest-photo approval queue; approved
       guest photos, all delete-with-confirmation) and the public `/gallery`
