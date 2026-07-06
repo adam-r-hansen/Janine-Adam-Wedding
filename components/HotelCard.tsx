@@ -11,11 +11,20 @@ export default function HotelCard({
 }) {
   return (
     <Panel className="flex flex-col overflow-hidden p-0">
-      <PlaceholderImage
-        label={hotel.name}
-        variant={variant}
-        className="aspect-[4/3]"
-      />
+      {hotel.photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={hotel.photoUrl}
+          alt={hotel.name}
+          className="aspect-[4/3] w-full object-cover"
+        />
+      ) : (
+        <PlaceholderImage
+          label={hotel.name}
+          variant={variant}
+          className="aspect-[4/3]"
+        />
+      )}
       <div className="flex flex-1 flex-col gap-2 p-5">
         <h3 className="font-heading text-xl text-accent">{hotel.name}</h3>
         <p className="text-sm leading-relaxed text-foreground/90">

@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 interface HotelRow {
   id: string;
   name: string;
+  photo_url: string | null;
   description: string;
   distance: string;
   price_range: string;
@@ -28,7 +29,7 @@ export default async function TravelPage() {
     supabase
       .from("hotels")
       .select(
-        "id, name, description, distance, price_range, booking_url, room_block_code, book_by_date"
+        "id, name, photo_url, description, distance, price_range, booking_url, room_block_code, book_by_date"
       )
       .order("sort_order", { ascending: true })
       .returns<HotelRow[]>(),
@@ -40,6 +41,7 @@ export default async function TravelPage() {
     hotelsResult.data?.map((row) => ({
       id: row.id,
       name: row.name,
+      photoUrl: row.photo_url ?? undefined,
       description: row.description,
       distance: row.distance,
       priceRange: row.price_range,

@@ -11,7 +11,7 @@ const tabs = [
   { href: "/admin/faqs", label: "FAQs", enabled: true },
   { href: "/admin/guest-list", label: "Guest List", enabled: false },
   { href: "/admin/rsvps", label: "RSVPs", enabled: false },
-  { href: "/admin/photos", label: "Photos", enabled: false },
+  { href: "/admin/photos", label: "Photos", enabled: true },
 ] as const;
 
 export default function AdminNav() {

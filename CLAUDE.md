@@ -85,11 +85,24 @@ It must be beautiful, simple, and flawless on mobile (most guests will visit on 
   dietary_notes
 - `photos` — storage_path, caption, album ('ours' | 'guests'), uploader_name,
   approved (boolean, default false), created_at
-- Storage bucket: `photos` (also holds hotel/activity images).
+- Storage bucket: `photos` (public read; anon may only write into `guests/`;
+  authenticated has full access), with three folders:
+  - `ours/` — admin-uploaded wedding photos (`/admin/photos`)
+  - `guests/` — guest uploads from the public `/gallery` page (anon write)
+  - `content/` — hotel/activity photos, set via each editor's image picker
+- All uploads are resized/compressed in the browser first (long edge ~2000px,
+  JPEG) via `lib/storage.ts`'s `resizeImage`, so phone photos (often
+  5-10MB) never ship to guests at full size. `getPhotoPublicUrl` builds a
+  photo's public URL from its `storage_path` (no network call — safe to use
+  in Server Components with the plain anon client).
 
-Admin image fields support two paths: direct upload, and "fetch from link"
-(server-side fetch of a URL's Open Graph preview image, saved into our own
-Storage — the live site only ever serves images from our Storage).
+Admin image fields (Hotels, Things to Do) currently support two paths:
+direct upload into `content/`, or pasting an image URL manually — pasted
+URLs are hotlinked as-is, NOT copied into our Storage, so they depend on
+the source staying up. The originally-envisioned "fetch from link"
+convenience (server-side fetch of a URL's Open Graph preview image, saved
+into our own Storage so the live site only ever serves from Storage) is
+deferred future work.
 
 ## Design system — the site should feel like the invitation
 
@@ -174,17 +187,24 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
         `-07:00` offset rather than pulling in a timezone library — fine
         for a date that's set once, but would need revisiting if the
         wedding date ever moved to a different DST season.
-      - `/admin/hotels` and `/admin/things-to-do` show `photo_url` as a
-        plain optional text field (with an inline note) instead of an
-        upload control, per the Photos milestone still being unbuilt.
-- [ ] Public pages reading live data
+      - `/admin/hotels` and `/admin/things-to-do` originally showed
+        `photo_url` as a plain text field pending the Photos milestone —
+        superseded below, both now use the real `ImagePicker`.
+- [x] Public pages reading live data
       - [x] FAQ
       - [x] Home
       - [x] Schedule
       - [x] Travel
       - [x] Things to Do
+      - [x] Gallery
       - [ ] RSVP — waiting on the guest-list lookup flow
-      - [ ] Gallery — waiting on Supabase Storage
 - [ ] Guest list + RSVP flow
-- [ ] Gallery + uploads + approval queue
+- [x] Gallery + uploads + approval queue — `/admin/photos` (Our Photos
+      upload with per-photo captions; guest-photo approval queue; approved
+      guest photos, all delete-with-confirmation) and the public `/gallery`
+      (real photo grids with a lightweight lightbox, plus the guest upload
+      form using the anon Storage/table write path directly from the
+      browser — no Server Action, since RLS is already the security
+      boundary for that one anon-write path). `lib/storage.ts` holds the
+      shared resize/upload/delete helpers used by all upload flows.
 - [ ] Deploy to Vercel, custom domain, guest password set

@@ -84,6 +84,7 @@ export const travelIntro =
 export interface Hotel {
   id: string;
   name: string;
+  photoUrl?: string;
   description: string;
   distance: string;
   priceRange: string;
@@ -128,6 +129,7 @@ export interface Activity {
   id: string;
   name: string;
   category: "activity" | "food_drink";
+  photoUrl?: string;
   blurb: string;
   neighborhood: string;
   linkUrl: string;
@@ -227,19 +229,4 @@ export const faqs: Faq[] = [
     answer:
       "We're so sorry we can't accommodate additional guests beyond who's named on your invitation. When RSVP opens, it will show exactly who we're able to welcome.",
   },
-];
-
-export interface GalleryPhoto {
-  id: string;
-  label: string;
-  variant: "tall" | "short" | "square";
-}
-
-export const ourPhotos: GalleryPhoto[] = [
-  { id: "photo-1", label: "Engagement, Point Defiance", variant: "tall" },
-  { id: "photo-2", label: "Save the Date", variant: "square" },
-  { id: "photo-3", label: "First Trip Together", variant: "short" },
-  { id: "photo-4", label: "Family Dinner", variant: "square" },
-  { id: "photo-5", label: "The Proposal", variant: "tall" },
-  { id: "photo-6", label: "Chambers Bay Sunset", variant: "short" },
 ];

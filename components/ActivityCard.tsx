@@ -16,11 +16,20 @@ export default function ActivityCard({
 }) {
   return (
     <Panel className="flex flex-col overflow-hidden p-0">
-      <PlaceholderImage
-        label={activity.name}
-        variant={variant}
-        className="aspect-[4/3]"
-      />
+      {activity.photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={activity.photoUrl}
+          alt={activity.name}
+          className="aspect-[4/3] w-full object-cover"
+        />
+      ) : (
+        <PlaceholderImage
+          label={activity.name}
+          variant={variant}
+          className="aspect-[4/3]"
+        />
+      )}
       <div className="flex flex-1 flex-col gap-2 p-5">
         <span className="w-fit rounded-full bg-gold px-3 py-1 text-xs font-medium uppercase tracking-widest text-night">
           {CATEGORY_LABEL[activity.category]}

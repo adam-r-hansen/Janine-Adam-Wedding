@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Panel from "@/components/Panel";
+import ImagePicker from "@/components/admin/ImagePicker";
 import {
   addActivity,
   deleteActivity,
@@ -52,20 +53,7 @@ function ActivityFields({ activity }: { activity?: AdminActivity }) {
           <option value="food_drink">Food & Drink</option>
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="font-medium text-foreground/80">
-          Photo URL
-          <span className="ml-1 font-normal text-foreground/60">
-            (optional — real photo upload comes with the Photos milestone)
-          </span>
-        </span>
-        <input
-          name="photo_url"
-          type="url"
-          defaultValue={activity?.photo_url ?? ""}
-          className={inputClasses}
-        />
-      </label>
+      <ImagePicker name="photo_url" defaultValue={activity?.photo_url} />
       <label className="flex flex-col gap-1 text-sm">
         <span className="font-medium text-foreground/80">
           Blurb

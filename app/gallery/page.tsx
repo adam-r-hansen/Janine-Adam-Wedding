@@ -1,15 +1,52 @@
 import PageContainer from "@/components/PageContainer";
 import Panel from "@/components/Panel";
-import PlaceholderImage from "@/components/PlaceholderImage";
-import { ourPhotos } from "@/lib/placeholder-data";
+import PhotoLightbox from "@/components/PhotoLightbox";
+import GuestPhotoUpload from "@/components/GuestPhotoUpload";
+import { supabase } from "@/lib/supabase";
+import { getPhotoPublicUrl } from "@/lib/storage";
 
-const VARIANT_ASPECT: Record<string, string> = {
-  tall: "aspect-[3/4]",
-  square: "aspect-square",
-  short: "aspect-[4/3]",
-};
+export const dynamic = "force-dynamic";
 
-export default function GalleryPage() {
+interface PhotoRow {
+  id: string;
+  storage_path: string;
+  caption: string | null;
+  album: "ours" | "guests";
+  uploader_name: string | null;
+}
+
+function photoAlt(photo: PhotoRow): string {
+  if (photo.caption) return photo.caption;
+  if (photo.album === "guests" && photo.uploader_name) {
+    return `Photo shared by ${photo.uploader_name}`;
+  }
+  return photo.album === "ours" ? "Photo from Janine and Adam" : "Guest photo";
+}
+
+export default async function GalleryPage() {
+  const { data, error } = await supabase
+    .from("photos")
+    .select("id, storage_path, caption, album, uploader_name")
+    .eq("approved", true)
+    .order("created_at", { ascending: false })
+    .returns<PhotoRow[]>();
+
+  const ourPhotos = (data ?? [])
+    .filter((photo) => photo.album === "ours")
+    .map((photo) => ({
+      id: photo.id,
+      url: getPhotoPublicUrl(photo.storage_path),
+      alt: photoAlt(photo),
+    }));
+
+  const guestPhotos = (data ?? [])
+    .filter((photo) => photo.album === "guests")
+    .map((photo) => ({
+      id: photo.id,
+      url: getPhotoPublicUrl(photo.storage_path),
+      alt: photoAlt(photo),
+    }));
+
   return (
     <PageContainer>
       <Panel className="p-8 text-center sm:p-10">
@@ -17,43 +54,52 @@ export default function GalleryPage() {
           GALLERY
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-foreground/90 sm:text-base">
-          {"Moments from our story, and soon, moments from yours too."}
+          {"Moments from our story, and moments from yours too."}
         </p>
       </Panel>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-center font-heading text-2xl text-accent">
-          Our Photos
-        </h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {ourPhotos.map((photo, i) => (
-            <PlaceholderImage
-              key={photo.id}
-              label={photo.label}
-              variant={i}
-              className={`rounded-2xl ${VARIANT_ASPECT[photo.variant]}`}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <h2 className="text-center font-heading text-2xl text-accent">
-          Guest Photos
-        </h2>
-        <Panel className="flex flex-col items-center gap-4 p-8 text-center">
-          <p className="text-sm leading-relaxed text-foreground/90 sm:text-base">
-            {"Coming soon — you'll be able to share your favorite moments from the weekend right here."}
+      {error ? (
+        <Panel className="p-8 text-center">
+          <p className="text-sm text-foreground/90">
+            Something went wrong loading the gallery. Please try again in a
+            bit.
           </p>
-          <button
-            type="button"
-            disabled
-            className="cursor-not-allowed rounded-full bg-foreground/10 px-6 py-2 text-sm font-medium text-foreground/50"
-          >
-            Upload Photos (Coming Soon)
-          </button>
         </Panel>
-      </section>
+      ) : (
+        <>
+          <section className="flex flex-col gap-4">
+            <h2 className="text-center font-heading text-2xl text-accent">
+              Our Photos
+            </h2>
+            {ourPhotos.length > 0 ? (
+              <PhotoLightbox photos={ourPhotos} />
+            ) : (
+              <Panel className="p-8 text-center">
+                <p className="text-sm text-foreground/90">
+                  Our photos are on their way.
+                </p>
+              </Panel>
+            )}
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <h2 className="text-center font-heading text-2xl text-accent">
+              Guest Photos
+            </h2>
+            {guestPhotos.length > 0 ? (
+              <PhotoLightbox photos={guestPhotos} />
+            ) : (
+              <Panel className="p-8 text-center">
+                <p className="text-sm leading-relaxed text-foreground/90 sm:text-base">
+                  No guest photos yet — be the first!
+                </p>
+              </Panel>
+            )}
+
+            <GuestPhotoUpload />
+          </section>
+        </>
+      )}
     </PageContainer>
   );
 }
