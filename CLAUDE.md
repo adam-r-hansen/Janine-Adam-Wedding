@@ -42,7 +42,8 @@ It must be beautiful, simple, and flawless on mobile (most guests will visit on 
 1. `/` Home — hero over the mountain artwork: names, date, countdown, venue
    line, short editable welcome message. Content from `site_settings`.
 2. `/schedule` — event cards: name, date, start/end time, venue name + address
-   (tappable link to Apple/Google Maps), description, dress code. Ordered.
+   (plain text, with separate "Open in Apple Maps" / "Open in Google Maps"
+   pill buttons), description, dress code. Ordered.
 3. `/travel` — editable intro block (airports, getting here) + hotel cards:
    photo, name, description, distance from venue, price range, booking link,
    room-block code and deadline.
@@ -52,11 +53,16 @@ It must be beautiful, simple, and flawless on mobile (most guests will visit on 
 5. `/faq` — question/answer pairs, ordered.
 6. `/rsvp` — guest-list lookup flow (see RSVP section below).
 7. `/gallery` — two sections: "Our photos" and "Guest photos". Guests can
-   upload; uploads are hidden until approved in admin.
-8. `/enter-password` — the shared-password gate. Warm, on-brand, one field.
-9. `/admin` — dashboard behind Supabase Auth login. Tabs: Settings, Events,
-   Hotels, Things to Do, FAQs, Guest List, RSVPs, Photos (approval queue +
-   upload). Every content type gets add/edit/delete/reorder.
+   upload; uploads are hidden until approved in admin. Captions show in the
+   lightbox (cream text, centered, below the enlarged photo).
+8. `/guestbook` — guests leave a name + written note; same moderation
+   pattern as guest photos (unapproved until admin approves). Approved
+   notes show newest-first with a friendly date.
+9. `/enter-password` — the shared-password gate. Warm, on-brand, one field.
+10. `/admin` — dashboard behind Supabase Auth login. Tabs: Settings, Events,
+    Hotels, Things to Do, FAQs, Guest List, RSVPs, Photos (approval queue +
+    upload), Guestbook (approval queue). Every content type gets
+    add/edit/delete/reorder.
 
 ## RSVP model (guest-list lookup, not open form)
 
@@ -120,6 +126,13 @@ query passthrough:
   dietary_notes
 - `photos` — storage_path, caption, album ('ours' | 'guests'), uploader_name,
   approved (boolean, default false), created_at
+- `guestbook_entries` — author_name (max 100 chars), message (max 1000
+  chars), approved (boolean, default false), created_at. RLS mirrors
+  `photos`: anon may SELECT only approved rows and INSERT only with
+  approved = false; authenticated has full SELECT/UPDATE/DELETE. Created
+  via `create-guestbook-table.sql` (run manually in the SQL Editor, same
+  as every other schema change — see "Supabase project + tables + RLS"
+  below).
 - Storage bucket: `photos` (public read; anon may only write into `guests/`;
   authenticated has full access), with three folders:
   - `ours/` — admin-uploaded wedding photos (`/admin/photos`)
@@ -266,5 +279,14 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
       form using the anon Storage/table write path directly from the
       browser — no Server Action, since RLS is already the security
       boundary for that one anon-write path). `lib/storage.ts` holds the
-      shared resize/upload/delete helpers used by all upload flows.
+      shared resize/upload/delete helpers used by all upload flows. Photo
+      captions show in the lightbox now, in both the guest-photo
+      ("Caption — Uploader" / "Shared by Uploader") and "ours" forms.
+- [x] Guestbook — `/guestbook` (name + note form, direct anon insert via
+      `lib/supabase.ts` — same trusted anon-write path as the guest photo
+      upload) and `/admin/guestbook` (Awaiting Approval / Approved,
+      approve/reject/delete, following the PhotoManager pattern minus the
+      upload step since there's no file involved). `guestbook_entries`
+      table + RLS created via `create-guestbook-table.sql`, mirroring the
+      `photos` moderation model exactly.
 - [ ] Deploy to Vercel, custom domain, guest password set
