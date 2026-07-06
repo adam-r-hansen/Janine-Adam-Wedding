@@ -60,14 +60,49 @@ It must be beautiful, simple, and flawless on mobile (most guests will visit on 
 
 ## RSVP model (guest-list lookup, not open form)
 
-- Guests type their name; forgiving search (partial, case-insensitive,
-  type-ahead) finds their PARTY; they respond for everyone on the invitation.
-- Per guest: attending yes/no. Per party: dietary notes (free text), optional
-  message to the couple. NO meal selection.
+- Guests type their name (3+ characters); forgiving search (partial,
+  case-insensitive) finds their PARTY; they respond for everyone on the
+  invitation. Search is submit-on-click, not live type-ahead — a
+  reasonable-enough simplification for now, could become live later.
+- Per guest: attending yes/no. Per party: dietary notes (free text, kept in
+  sync across every guest row in the party — see below), optional message
+  to the couple (`parties.message`, added in stage 2 via
+  `add-rsvp-message-column.sql`; run once in the Supabase SQL Editor). NO
+  meal selection.
 - Under the search box, always show a fallback: "Can't find your name? Text us!"
 - Unknown plus-ones are pre-added as named placeholders (e.g. "Sarah's Guest").
 - Admin: Guest List tab (add/edit parties & guests, CSV import), RSVP tab
   (responses, live headcounts, who has NOT responded, CSV export).
+
+### The concierge (public RSVP's server-side access to `parties`/`guests`)
+
+`parties` and `guests` are **admin-only** RLS — unlike most tables, there is
+no public read/write at all, since this data is guest PII. The public RSVP
+flow therefore cannot use the anon or cookie-based clients; it goes through
+`lib/supabase-service.ts`, which creates a client using
+`SUPABASE_SERVICE_ROLE_KEY` (bypasses RLS entirely). That file starts with
+`import "server-only"`, which makes the *build itself fail* if it's ever
+imported into a Client Component — the one time this was tested on purpose
+(a throwaway client-side import), the build correctly refused to compile.
+
+Every use of that service-role client lives in `app/rsvp/actions.ts`
+(Server Actions) and is scoped as narrowly as possible — never a generic
+query passthrough:
+- `searchParties(query)` — the fuzzy, multi-party search. Returns only
+  `{ partyId, label, firstNames }` per match, **never** attending status,
+  dietary notes, or full surnames — a search match isn't proof the
+  searcher belongs to that party.
+- `getPartyForResponse(partyId)` — called only after a guest taps one
+  specific party from their search results. This is the one place
+  response status/dietary notes/message are ever read, to pre-fill the
+  form ("Looks like you've already responded — feel free to update.").
+- `submitRsvp(...)` — re-fetches the party's real guest ids server-side
+  and rejects the submission if the posted ids don't match exactly,
+  before writing anything.
+- The admin RSVPs dashboard (`/admin/rsvps`) does NOT use the service-role
+  client — it's a normal authenticated admin page, reading `parties`/
+  `guests` through the same cookie-based `lib/supabase-server.ts` client
+  every other admin page uses, since RLS already permits admin reads.
 
 ## Database tables
 
@@ -146,8 +181,10 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
   components. Placeholder seed data is fine during development.
 - Keep components in `/components`, Supabase helpers in `/lib`.
 - Environment variables: `SITE_PASSWORD`, `NEXT_PUBLIC_SUPABASE_URL`,
-  `NEXT_PUBLIC_SUPABASE_ANON_KEY` (and server-side service key only if truly
-  needed). Never commit secrets; `.env.local` stays gitignored.
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` (server-side
+  only — see "The concierge" under RSVP model; never given a `NEXT_PUBLIC_`
+  prefix, only ever imported via `lib/supabase-service.ts`). Never commit
+  secrets; `.env.local` stays gitignored.
 
 ## Build order & status
 
@@ -197,8 +234,8 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
       - [x] Travel
       - [x] Things to Do
       - [x] Gallery
-      - [ ] RSVP — waiting on the guest-list lookup flow
-- [ ] Guest list + RSVP flow
+      - [x] RSVP
+- [x] Guest list + RSVP flow
       - [x] Stage 1: admin guest-list management — `/admin/guest-list` has
             parties as cards (each with its guests, add/rename/delete —
             deleting a party warns it removes its guests too and does),
@@ -212,9 +249,16 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
             `lib/csv.ts` is a small hand-rolled parser (no new dependency)
             handling quoted fields with commas, escaped quotes, a header
             row in any capitalization or column order, and blank rows.
-      - [ ] Stage 2: the public RSVP lookup flow itself (guest types their
-            name, finds their party, responds for everyone on it) — not
-            started.
+      - [x] Stage 2: the public `/rsvp` flow (search by name → tap your
+            party → attending toggle per guest, dietary notes, message →
+            warm confirmation, flavored by whether anyone said yes) and
+            the admin `/admin/rsvps` dashboard (headline counts, the
+            not-yet-responded chase list, full responses newest first,
+            CSV export at `/admin/rsvps/export`). See "The concierge"
+            above for how the public side reaches the admin-only
+            `parties`/`guests` tables safely. Needs
+            `add-rsvp-message-column.sql` run once before the message
+            field will save.
 - [x] Gallery + uploads + approval queue — `/admin/photos` (Our Photos
       upload with per-photo captions; guest-photo approval queue; approved
       guest photos, all delete-with-confirmation) and the public `/gallery`
