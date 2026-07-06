@@ -2,8 +2,10 @@ import Panel from "./Panel";
 import type { ScheduleEvent } from "@/lib/placeholder-data";
 
 export default function EventCard({ event }: { event: ScheduleEvent }) {
-  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${event.venueName}, ${event.address}`
+  const query = `${event.venueName}, ${event.address}`;
+  const appleMapsHref = `https://maps.apple.com/?q=${encodeURIComponent(query)}`;
+  const googleMapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    query
   )}`;
 
   return (
@@ -14,14 +16,27 @@ export default function EventCard({ event }: { event: ScheduleEvent }) {
       <p className="text-sm font-medium uppercase tracking-widest text-foreground/70">
         {event.date} &middot; {event.startTime}&ndash;{event.endTime}
       </p>
-      <a
-        href={mapsHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-sm text-accent underline-offset-4 hover:underline"
-      >
+      <p className="text-sm text-foreground/90">
         {event.venueName} — {event.address}
-      </a>
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <a
+          href={appleMapsHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-full border border-dahlia/20 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 dark:border-cream/20"
+        >
+          Open in Apple Maps
+        </a>
+        <a
+          href={googleMapsHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-full border border-dahlia/20 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/10 dark:border-cream/20"
+        >
+          Open in Google Maps
+        </a>
+      </div>
       <p className="text-sm leading-relaxed text-foreground/90 sm:text-base">
         {event.description}
       </p>

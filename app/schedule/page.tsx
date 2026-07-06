@@ -48,7 +48,7 @@ export default async function SchedulePage() {
           SCHEDULE
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-foreground/90 sm:text-base">
-          {"Here's what we have planned for the weekend. Tap any address for directions."}
+          {"Here's what we have planned for the weekend. Tap a map button on any event for directions."}
         </p>
       </Panel>
 
