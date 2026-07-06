@@ -6,6 +6,7 @@ export interface LightboxPhoto {
   id: string;
   url: string;
   alt: string;
+  caption: string | null;
 }
 
 export default function PhotoLightbox({
@@ -96,13 +97,22 @@ export default function PhotoLightbox({
             </button>
           )}
 
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={photos[openIndex].url}
-            alt={photos[openIndex].alt}
-            className="max-h-full max-w-full rounded-lg object-contain"
+          <div
+            className="flex max-h-full flex-col items-center gap-3"
             onClick={(e) => e.stopPropagation()}
-          />
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={photos[openIndex].url}
+              alt={photos[openIndex].alt}
+              className="max-h-[75vh] max-w-full rounded-lg object-contain"
+            />
+            {photos[openIndex].caption && (
+              <p className="max-w-lg px-4 text-center text-sm text-cream">
+                {photos[openIndex].caption}
+              </p>
+            )}
+          </div>
         </div>
       )}
     </>

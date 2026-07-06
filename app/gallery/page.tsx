@@ -23,6 +23,20 @@ function photoAlt(photo: PhotoRow): string {
   return photo.album === "ours" ? "Photo from Janine and Adam" : "Guest photo";
 }
 
+// The caption shown below a photo in the lightbox — distinct from the
+// alt text above, which always needs *something* descriptive even when
+// there's no caption at all.
+function photoCaption(photo: PhotoRow): string | null {
+  if (photo.album === "guests") {
+    if (photo.caption && photo.uploader_name) {
+      return `${photo.caption} — ${photo.uploader_name}`;
+    }
+    if (photo.uploader_name) return `Shared by ${photo.uploader_name}`;
+    return photo.caption;
+  }
+  return photo.caption;
+}
+
 export default async function GalleryPage() {
   const { data, error } = await supabase
     .from("photos")
@@ -37,6 +51,7 @@ export default async function GalleryPage() {
       id: photo.id,
       url: getPhotoPublicUrl(photo.storage_path),
       alt: photoAlt(photo),
+      caption: photoCaption(photo),
     }));
 
   const guestPhotos = (data ?? [])
@@ -45,6 +60,7 @@ export default async function GalleryPage() {
       id: photo.id,
       url: getPhotoPublicUrl(photo.storage_path),
       alt: photoAlt(photo),
+      caption: photoCaption(photo),
     }));
 
   return (
