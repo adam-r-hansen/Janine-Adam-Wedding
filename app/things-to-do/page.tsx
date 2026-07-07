@@ -12,6 +12,7 @@ interface ActivityRow {
   category: Activity["category"];
   photo_url: string | null;
   blurb: string;
+  address: string | null;
   neighborhood: string;
   link_url: string;
 }
@@ -19,7 +20,9 @@ interface ActivityRow {
 export default async function ThingsToDoPage() {
   const { data, error } = await supabase
     .from("activities")
-    .select("id, name, category, photo_url, blurb, neighborhood, link_url")
+    .select(
+      "id, name, category, photo_url, blurb, address, neighborhood, link_url"
+    )
     .order("sort_order", { ascending: true })
     .returns<ActivityRow[]>();
 
@@ -30,6 +33,7 @@ export default async function ThingsToDoPage() {
       category: row.category,
       photoUrl: row.photo_url ?? undefined,
       blurb: row.blurb,
+      address: row.address ?? undefined,
       neighborhood: row.neighborhood,
       linkUrl: row.link_url,
     })) ?? [];

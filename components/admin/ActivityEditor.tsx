@@ -16,6 +16,7 @@ export interface AdminActivity {
   category: "activity" | "food_drink";
   photo_url: string | null;
   blurb: string;
+  address: string | null;
   neighborhood: string;
   link_url: string;
   sort_order: number;
@@ -66,6 +67,19 @@ function ActivityFields({ activity }: { activity?: AdminActivity }) {
           defaultValue={activity?.blurb}
           required
           rows={3}
+          className={inputClasses}
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium text-foreground/80">
+          Address
+          <span className="ml-1 font-normal text-foreground/60">
+            (optional — adds Apple/Google Maps buttons)
+          </span>
+        </span>
+        <input
+          name="address"
+          defaultValue={activity?.address ?? ""}
           className={inputClasses}
         />
       </label>

@@ -1,5 +1,6 @@
 import Panel from "./Panel";
 import PlaceholderImage from "./PlaceholderImage";
+import MapButtons from "./MapButtons";
 import type { Activity } from "@/lib/placeholder-data";
 
 const CATEGORY_LABEL: Record<Activity["category"], string> = {
@@ -41,6 +42,12 @@ export default function ActivityCard({
         <p className="text-xs uppercase tracking-wide text-foreground/60">
           {activity.neighborhood}
         </p>
+        {activity.address && (
+          <>
+            <p className="text-sm text-foreground/90">{activity.address}</p>
+            <MapButtons query={`${activity.name}, ${activity.address}`} />
+          </>
+        )}
         <a
           href={activity.linkUrl}
           target="_blank"

@@ -13,6 +13,7 @@ interface ActivityFields {
   category: "activity" | "food_drink";
   photo_url: string | null;
   blurb: string;
+  address: string | null;
   neighborhood: string;
   link_url: string;
 }
@@ -35,6 +36,7 @@ function readFields(
   }
 
   const photo_url = String(formData.get("photo_url") ?? "").trim() || null;
+  const address = String(formData.get("address") ?? "").trim() || null;
 
   return {
     fields: {
@@ -42,6 +44,7 @@ function readFields(
       category: categoryRaw,
       photo_url,
       blurb,
+      address,
       neighborhood,
       link_url,
     },
