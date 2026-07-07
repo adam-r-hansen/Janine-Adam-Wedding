@@ -54,14 +54,19 @@ It must be beautiful, simple, and flawless on mobile (most guests will visit on 
    should feel personal — the blurbs are the couple's voice.
 5. `/faq` — question/answer pairs, ordered.
 6. `/rsvp` — guest-list lookup flow (see RSVP section below).
-7. `/gallery` — two sections: "Our photos" and "Guest photos". Guests can
+7. `/honeymoon` — short page: intro paragraph plus one prominent button
+   linking out to the HoneyFund (honeymoon fund in lieu of a traditional
+   registry). Content from `site_settings` (`registry_intro`,
+   `registry_url` — key names kept from before the page was renamed from
+   "Registry" to "Honeymoon"; nothing user-facing says "registry").
+8. `/gallery` — two sections: "Our photos" and "Guest photos". Guests can
    upload; uploads are hidden until approved in admin. Captions show in the
    lightbox (cream text, centered, below the enlarged photo).
-8. `/guestbook` — guests leave a name + written note; same moderation
+9. `/guestbook` — guests leave a name + written note; same moderation
    pattern as guest photos (unapproved until admin approves). Approved
    notes show newest-first with a friendly date.
-9. `/enter-password` — the shared-password gate. Warm, on-brand, one field.
-10. `/admin` — dashboard behind Supabase Auth login. Tabs: Settings, Events,
+10. `/enter-password` — the shared-password gate. Warm, on-brand, one field.
+11. `/admin` — dashboard behind Supabase Auth login. Tabs: Settings, Events,
     Hotels, Things to Do, FAQs, Guest List, RSVPs, Photos (approval queue +
     upload), Guestbook (approval queue). Every content type gets
     add/edit/delete/reorder.
@@ -115,7 +120,9 @@ query passthrough:
 ## Database tables
 
 - `site_settings` — key/value: hero photo, welcome text, date, venue, password
-  hints, etc.
+  hints, etc. Includes `registry_intro` and `registry_url` (the Honeymoon
+  page's intro paragraph and HoneyFund link — key names predate the page
+  being renamed from "Registry" to "Honeymoon").
 - `events` — title, date, start_time, end_time, venue_name, address,
   description, dress_code, sort_order
 - `hotels` — name, photo_url, description, address (optional), distance,
