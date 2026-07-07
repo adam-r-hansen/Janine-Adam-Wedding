@@ -45,11 +45,13 @@ It must be beautiful, simple, and flawless on mobile (most guests will visit on 
    (plain text, with separate "Open in Apple Maps" / "Open in Google Maps"
    pill buttons), description, dress code. Ordered.
 3. `/travel` — editable intro block (airports, getting here) + hotel cards:
-   photo, name, description, distance from venue, price range, booking link,
-   room-block code and deadline.
+   photo, name, description, address (optional — shows the same Apple/Google
+   Maps buttons as Schedule when set), distance from venue, price range,
+   booking link, room-block code and deadline.
 4. `/things-to-do` — recommendation cards with filter tabs: Activities vs
-   Food & Drink. Each: photo, name, category, personal blurb, neighborhood,
-   link. This page should feel personal — the blurbs are the couple's voice.
+   Food & Drink. Each: photo, name, category, personal blurb, address
+   (optional, same map buttons as above), neighborhood, link. This page
+   should feel personal — the blurbs are the couple's voice.
 5. `/faq` — question/answer pairs, ordered.
 6. `/rsvp` — guest-list lookup flow (see RSVP section below).
 7. `/gallery` — two sections: "Our photos" and "Guest photos". Guests can
@@ -116,10 +118,10 @@ query passthrough:
   hints, etc.
 - `events` — title, date, start_time, end_time, venue_name, address,
   description, dress_code, sort_order
-- `hotels` — name, photo_url, description, distance, price_range, booking_url,
-  room_block_code, book_by_date, sort_order
+- `hotels` — name, photo_url, description, address (optional), distance,
+  price_range, booking_url, room_block_code, book_by_date, sort_order
 - `activities` — name, category ('activity' | 'food_drink'), photo_url, blurb,
-  neighborhood, link_url, sort_order
+  address (optional), neighborhood, link_url, sort_order
 - `faqs` — question, answer, sort_order
 - `parties` — label, responded_at
 - `guests` — party_id, full_name, attending (null | true | false),
@@ -193,6 +195,11 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
 - All content comes from Supabase — no hardcoded events/hotels/FAQ text in
   components. Placeholder seed data is fine during development.
 - Keep components in `/components`, Supabase helpers in `/lib`.
+- `components/MapButtons.tsx` is the shared "Open in Apple Maps" / "Open in
+  Google Maps" pill-button pair — takes one `query` string (e.g. "Venue
+  Name, address"), URL-encodes it, and renders both links. Used by
+  EventCard (Schedule), HotelCard (Travel), and ActivityCard (Things to
+  Do); reach for it instead of re-inlining the map links a fourth time.
 - Environment variables: `SITE_PASSWORD`, `NEXT_PUBLIC_SUPABASE_URL`,
   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` (server-side
   only — see "The concierge" under RSVP model; never given a `NEXT_PUBLIC_`
