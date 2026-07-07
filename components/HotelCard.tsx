@@ -1,5 +1,6 @@
 import Panel from "./Panel";
 import PlaceholderImage from "./PlaceholderImage";
+import MapButtons from "./MapButtons";
 import type { Hotel } from "@/lib/placeholder-data";
 
 export default function HotelCard({
@@ -33,6 +34,12 @@ export default function HotelCard({
         <p className="text-xs uppercase tracking-wide text-foreground/60">
           {hotel.distance} &middot; {hotel.priceRange}
         </p>
+        {hotel.address && (
+          <>
+            <p className="text-sm text-foreground/90">{hotel.address}</p>
+            <MapButtons query={`${hotel.name}, ${hotel.address}`} />
+          </>
+        )}
         {hotel.roomBlockCode && hotel.bookByDate && (
           <p className="w-fit rounded-full bg-pine px-3 py-1 text-xs font-medium text-cream">
             Code {hotel.roomBlockCode} &middot; book by {hotel.bookByDate}

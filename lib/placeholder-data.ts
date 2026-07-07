@@ -86,6 +86,7 @@ export interface Hotel {
   name: string;
   photoUrl?: string;
   description: string;
+  address?: string;
   distance: string;
   priceRange: string;
   bookingUrl: string;
@@ -131,6 +132,7 @@ export interface Activity {
   category: "activity" | "food_drink";
   photoUrl?: string;
   blurb: string;
+  address?: string;
   neighborhood: string;
   linkUrl: string;
 }

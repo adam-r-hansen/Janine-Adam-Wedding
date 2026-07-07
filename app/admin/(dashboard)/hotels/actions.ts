@@ -12,6 +12,7 @@ interface HotelFields {
   name: string;
   photo_url: string | null;
   description: string;
+  address: string | null;
   distance: string;
   price_range: string;
   booking_url: string;
@@ -31,6 +32,7 @@ function readFields(formData: FormData): { error: string } | { fields: HotelFiel
   }
 
   const photo_url = String(formData.get("photo_url") ?? "").trim() || null;
+  const address = String(formData.get("address") ?? "").trim() || null;
   const room_block_code =
     String(formData.get("room_block_code") ?? "").trim() || null;
   const book_by_date = String(formData.get("book_by_date") ?? "").trim() || null;
@@ -40,6 +42,7 @@ function readFields(formData: FormData): { error: string } | { fields: HotelFiel
       name,
       photo_url,
       description,
+      address,
       distance,
       price_range,
       booking_url,

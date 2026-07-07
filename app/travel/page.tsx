@@ -12,6 +12,7 @@ interface HotelRow {
   name: string;
   photo_url: string | null;
   description: string;
+  address: string | null;
   distance: string;
   price_range: string;
   booking_url: string;
@@ -29,7 +30,7 @@ export default async function TravelPage() {
     supabase
       .from("hotels")
       .select(
-        "id, name, photo_url, description, distance, price_range, booking_url, room_block_code, book_by_date"
+        "id, name, photo_url, description, address, distance, price_range, booking_url, room_block_code, book_by_date"
       )
       .order("sort_order", { ascending: true })
       .returns<HotelRow[]>(),
@@ -43,6 +44,7 @@ export default async function TravelPage() {
       name: row.name,
       photoUrl: row.photo_url ?? undefined,
       description: row.description,
+      address: row.address ?? undefined,
       distance: row.distance,
       priceRange: row.price_range,
       bookingUrl: row.booking_url,

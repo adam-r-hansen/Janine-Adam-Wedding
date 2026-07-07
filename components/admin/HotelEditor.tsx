@@ -16,6 +16,7 @@ export interface AdminHotel {
   name: string;
   photo_url: string | null;
   description: string;
+  address: string | null;
   distance: string;
   price_range: string;
   booking_url: string;
@@ -47,6 +48,19 @@ function HotelFields({ hotel }: { hotel?: AdminHotel }) {
           defaultValue={hotel?.description}
           required
           rows={3}
+          className={inputClasses}
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="font-medium text-foreground/80">
+          Address
+          <span className="ml-1 font-normal text-foreground/60">
+            (optional — adds Apple/Google Maps buttons)
+          </span>
+        </span>
+        <input
+          name="address"
+          defaultValue={hotel?.address ?? ""}
           className={inputClasses}
         />
       </label>
