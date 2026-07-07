@@ -9,6 +9,8 @@ export interface AdminSettings {
   venue_line: string;
   travel_intro: string;
   wedding_datetime: string;
+  registry_intro: string;
+  registry_url: string;
 }
 
 const inputClasses =
@@ -106,6 +108,38 @@ export default function SettingsEditor({
             defaultValue={settings.travel_intro}
             required
             rows={4}
+            className={inputClasses}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium text-foreground/80">
+            Registry message
+            <span className="ml-1 font-normal text-foreground/60">
+              (shown on the Honeymoon page)
+            </span>
+          </span>
+          <textarea
+            name="registry_intro"
+            defaultValue={settings.registry_intro}
+            required
+            rows={4}
+            className={inputClasses}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium text-foreground/80">
+            Registry link (HoneyFund URL)
+            <span className="ml-1 font-normal text-foreground/60">
+              (the button on the Honeymoon page opens this)
+            </span>
+          </span>
+          <input
+            type="url"
+            name="registry_url"
+            defaultValue={settings.registry_url}
+            required
             className={inputClasses}
           />
         </label>

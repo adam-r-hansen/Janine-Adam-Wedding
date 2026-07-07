@@ -7,6 +7,7 @@ function refreshSettingsPages() {
   revalidatePath("/admin/settings");
   revalidatePath("/");
   revalidatePath("/travel");
+  revalidatePath("/honeymoon");
 }
 
 export async function updateSettings(formData: FormData) {
@@ -14,8 +15,17 @@ export async function updateSettings(formData: FormData) {
   const venueLine = String(formData.get("venue_line") ?? "").trim();
   const travelIntro = String(formData.get("travel_intro") ?? "").trim();
   const weddingDateTime = String(formData.get("wedding_datetime") ?? "").trim();
+  const registryIntro = String(formData.get("registry_intro") ?? "").trim();
+  const registryUrl = String(formData.get("registry_url") ?? "").trim();
 
-  if (!welcomeMessage || !venueLine || !travelIntro || !weddingDateTime) {
+  if (
+    !welcomeMessage ||
+    !venueLine ||
+    !travelIntro ||
+    !weddingDateTime ||
+    !registryIntro ||
+    !registryUrl
+  ) {
     return { error: "Please fill in every field." };
   }
 
@@ -47,6 +57,8 @@ export async function updateSettings(formData: FormData) {
       { key: "travel_intro", value: travelIntro },
       { key: "wedding_datetime", value: weddingDatetimeIso },
       { key: "wedding_date_label", value: weddingDateLabel },
+      { key: "registry_intro", value: registryIntro },
+      { key: "registry_url", value: registryUrl },
     ],
     { onConflict: "key" }
   );

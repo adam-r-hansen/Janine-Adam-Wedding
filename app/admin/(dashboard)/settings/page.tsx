@@ -11,6 +11,8 @@ const SETTINGS_KEYS = [
   "venue_line",
   "travel_intro",
   "wedding_datetime",
+  "registry_intro",
+  "registry_url",
 ] as const;
 
 interface SettingRow {
@@ -31,6 +33,8 @@ export default async function AdminSettingsPage() {
     venue_line: "",
     travel_intro: "",
     wedding_datetime: "",
+    registry_intro: "",
+    registry_url: "",
     ...Object.fromEntries((data ?? []).map((row) => [row.key, row.value])),
   };
 
@@ -41,7 +45,7 @@ export default async function AdminSettingsPage() {
           Settings
         </h2>
         <p className="mt-2 text-sm text-foreground/90">
-          These fields feed the Home and Travel pages.
+          These fields feed the Home, Travel, and Honeymoon pages.
         </p>
       </Panel>
 
