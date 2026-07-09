@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Pinyon_Script } from "next/font/google";
 import "./globals.css";
 import Background from "@/components/Background";
 import NavBar from "@/components/NavBar";
+import ConditionalFooter from "@/components/ConditionalFooter";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
@@ -36,6 +37,7 @@ export default function RootLayout({
         <Background />
         <NavBar />
         <main className="flex flex-1 flex-col">{children}</main>
+        <ConditionalFooter />
       </body>
     </html>
   );

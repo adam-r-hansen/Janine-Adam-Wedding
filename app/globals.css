@@ -45,6 +45,16 @@
   }
 }
 
+/* The footer's owl/fox art is dark-brown line work, invisible against a
+   dark background — this recolors it to a warm cream/gold in dark mode
+   instead of a stark white invert. */
+@media (prefers-color-scheme: dark) {
+  .footer-animal {
+    filter: brightness(0) invert(0.93) sepia(0.25) saturate(1.2);
+    opacity: 0.85;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
