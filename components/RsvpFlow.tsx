@@ -114,8 +114,9 @@ export default function RsvpFlow() {
           {results.length === 0 ? (
             <Panel className="p-6 text-center">
               <p className="text-sm text-foreground/90">
-                We couldn&apos;t find anyone by that name. Try a different
-                spelling, or text us!
+                We couldn&apos;t find anyone by that name. Try just your
+                first name, or your last name on its own — or text us and
+                we&apos;ll sort it out!
               </p>
             </Panel>
           ) : (
