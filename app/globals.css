@@ -109,6 +109,12 @@
   font-weight: 600;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .drawer-pill {
+    transition: none;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -186,13 +192,17 @@ body {
   background-size: cover;
 }
 
-/* DrawerShell's sliding card needs a real minimum height, not just a
-   percentage (min-h-full) chained up through body/html — otherwise a
-   short page like Home wouldn't fill the screen, and the drawer layer
-   behind it could peek out below the footer. dvh (falls back to vh in
-   older browsers) tracks the actual visible viewport, accounting for
-   mobile browsers showing/hiding their address bar. */
+/* DrawerShell's sliding card is the ONE place in the whole page that
+   establishes a full-screen minimum height — html and body deliberately
+   have none (see app/layout.tsx), so there's no second, independent
+   "at least one viewport tall" rule for the two to disagree about and
+   leave blank space below the footer. dvh (falls back to vh in older
+   browsers) tracks the actual visible viewport, accounting for mobile
+   browsers showing/hiding their address bar. box-sizing is spelled out
+   explicitly (Tailwind's Preflight already sets it site-wide) so this
+   min-height can never be pushed taller by padding/border added later. */
 .drawer-card {
+  box-sizing: border-box;
   min-height: 100vh;
   min-height: 100dvh;
 }

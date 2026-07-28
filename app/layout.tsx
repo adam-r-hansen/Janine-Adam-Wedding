@@ -32,9 +32,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${pinyon.variable} h-full antialiased`}
+      className={`${cormorant.variable} ${pinyon.variable} antialiased`}
     >
-      <body className="flex min-h-full flex-col font-sans">
+      <body className="flex flex-col font-sans">
         <DrawerShell>
           <Background />
           <NavBar />

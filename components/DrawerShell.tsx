@@ -1,13 +1,35 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { links } from "@/components/NavBar";
 
-const TRANSITION =
-  "transform 420ms cubic-bezier(0.32, 0.72, 0, 1), border-radius 420ms cubic-bezier(0.32, 0.72, 0, 1)";
+const TRANSITION_MS = 420;
+
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+function subscribeToReducedMotion(callback: () => void) {
+  const mediaQuery = window.matchMedia(REDUCED_MOTION_QUERY);
+  mediaQuery.addEventListener("change", callback);
+  return () => mediaQuery.removeEventListener("change", callback);
+}
+
+function getReducedMotionSnapshot() {
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
+}
+
+function getReducedMotionServerSnapshot() {
+  return false;
+}
 
 // Wraps the whole page so it can act like a card that slides away on
 // mobile, revealing a menu layer that was sitting underneath the whole
@@ -16,6 +38,7 @@ const TRANSITION =
 // renders exactly as if DrawerShell didn't exist.
 export default function DrawerShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const previousPathnameRef = useRef(pathname);
   const [isOpen, setIsOpen] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);
   // True only while the open/close transition is actually running — NOT
@@ -27,7 +50,40 @@ export default function DrawerShell({ children }: { children: ReactNode }) {
   // feeds directly into the card's inline style below, so it lives in
   // state (not a ref) — a ref's value shouldn't be read during render.
   const [frozenScrollY, setFrozenScrollY] = useState(0);
+  // Subscribes directly to the browser's media query (the React-recommended
+  // way to read external/browser state) instead of setState-in-an-effect.
+  const prefersReducedMotion = useSyncExternalStore(
+    subscribeToReducedMotion,
+    getReducedMotionSnapshot,
+    getReducedMotionServerSnapshot
+  );
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animatingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
+  // 0ms when the user has asked for reduced motion — every timer below
+  // that exists only to "wait out the animation" collapses to instant.
+  const transitionMs = prefersReducedMotion ? 0 : TRANSITION_MS;
+
+  function clearAnimatingTimeout() {
+    if (animatingTimeoutRef.current) {
+      clearTimeout(animatingTimeoutRef.current);
+      animatingTimeoutRef.current = null;
+    }
+  }
+
+  // Fallback for isAnimating: normally handleCardTransitionEnd clears it
+  // the instant the real CSS transition finishes, but transitionend never
+  // fires when there's no transition to finish (prefers-reduced-motion),
+  // so this guarantees it always gets cleared regardless.
+  function scheduleAnimatingClear(duration: number) {
+    clearAnimatingTimeout();
+    animatingTimeoutRef.current = setTimeout(() => {
+      setIsAnimating(false);
+      animatingTimeoutRef.current = null;
+    }, duration);
+  }
 
   function openDrawer() {
     if (closeTimeoutRef.current) {
@@ -39,27 +95,30 @@ export default function DrawerShell({ children }: { children: ReactNode }) {
     setFrozenScrollY(window.scrollY);
     setIsFrozen(true);
     setIsAnimating(true);
+    scheduleAnimatingClear(transitionMs);
     setIsOpen(true);
   }
 
   function closeDrawer() {
     setIsOpen(false);
     setIsAnimating(true);
-    // Stay "frozen" (fixed, pinned) for the full 420ms close animation,
-    // then drop back to normal document flow and land exactly where the
-    // user was — this is the step most likely to visually jump if rushed.
+    scheduleAnimatingClear(transitionMs);
+    // Stay "frozen" (fixed, pinned) for the close animation, then drop
+    // back to normal document flow and land exactly where the user was —
+    // this is the step most likely to visually jump if rushed. This path
+    // is only for closing on the SAME page (X button, tapping the card,
+    // Escape) — see the pathname effect below for closing via navigation,
+    // which must never restore this scroll position.
     closeTimeoutRef.current = setTimeout(() => {
       setIsFrozen(false);
       window.scrollTo(0, frozenScrollY);
       closeTimeoutRef.current = null;
-    }, 420);
+    }, transitionMs);
   }
 
-  // Belt-and-suspenders in case the timer above and the real CSS
-  // transition ever drift apart: will-change comes off the moment the
-  // card's own transform transition actually finishes, not on a timer.
   function handleCardTransitionEnd(e: React.TransitionEvent<HTMLDivElement>) {
     if (e.target === e.currentTarget && e.propertyName === "transform") {
+      clearAnimatingTimeout();
       setIsAnimating(false);
     }
   }
@@ -79,9 +138,52 @@ export default function DrawerShell({ children }: { children: ReactNode }) {
     };
   }, [isFrozen]);
 
+  // A navigation (tapping a drawer link, browser back/forward, etc.) must
+  // never let the OLD page's frozen scroll position leak onto the NEW
+  // page. Skipped on first mount (pathname "changing" from its own
+  // starting value isn't a real navigation) — only fires on genuine
+  // route changes, and always wins over whatever closeDrawer's own timer
+  // was about to do.
+  useEffect(() => {
+    if (previousPathnameRef.current === pathname) {
+      return;
+    }
+    previousPathnameRef.current = pathname;
+
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    clearAnimatingTimeout();
+
+    // Snap everything closed with no transition — the new page is
+    // already rendering underneath, so animating the old one away would
+    // just fight it — and start the new page at the top, never at the
+    // old scroll position.
+    setIsOpen(false);
+    setIsFrozen(false);
+    setIsAnimating(false);
+    setFrozenScrollY(0);
+    document.body.style.overflow = "";
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        closeDrawer();
+      }
+    }
+    if (!isOpen) return;
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
   useEffect(() => {
     return () => {
       if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      clearAnimatingTimeout();
     };
   }, []);
 
@@ -99,9 +201,13 @@ export default function DrawerShell({ children }: { children: ReactNode }) {
           : "translateX(0) scale(1)",
         borderRadius: isOpen ? "24px" : "0px",
         boxShadow: isOpen ? "-8px 0 40px rgba(0, 0, 0, 0.45)" : "none",
-        transition: TRANSITION,
+        transition: prefersReducedMotion
+          ? "none"
+          : "transform 420ms cubic-bezier(0.32, 0.72, 0, 1), border-radius 420ms cubic-bezier(0.32, 0.72, 0, 1)",
         // Only while the transition is actually running — see isAnimating.
-        ...(isAnimating ? { willChange: "transform" } : {}),
+        ...(isAnimating && !prefersReducedMotion
+          ? { willChange: "transform" }
+          : {}),
       }
     : {
         transform: "none",
@@ -109,13 +215,16 @@ export default function DrawerShell({ children }: { children: ReactNode }) {
 
   return (
     <>
-      {/* The drawer layer: full-screen, sits behind the card at all times.
-          On mobile it's always technically "there," just completely hidden
+      {/* The drawer layer: fixed, full-screen, sits behind the card at
+          all times and contributes zero height to the document. On
+          mobile it's always technically "there," just completely hidden
           behind the opaque card until the card slides away. bg-night is
           the fallback color underneath the image, so there's never a
           flash of white while the artwork loads. */}
       <div
         className="fixed inset-0 z-0 overflow-hidden bg-night md:hidden"
+        role="navigation"
+        aria-label="Menu"
         aria-hidden={!isOpen}
       >
         <Image
@@ -139,7 +248,7 @@ export default function DrawerShell({ children }: { children: ReactNode }) {
         />
 
         <div className="relative z-10 flex h-full flex-col justify-center pt-24 pb-12">
-          <nav className="flex w-full flex-col items-end gap-2.5 pr-6">
+          <div className="flex w-full flex-col items-end gap-2.5 pr-6">
             {links.map((link, index) => {
               const isActive = pathname === link.href;
               return (
@@ -148,6 +257,7 @@ export default function DrawerShell({ children }: { children: ReactNode }) {
                   href={link.href}
                   onClick={closeDrawer}
                   aria-current={isActive ? "page" : undefined}
+                  tabIndex={isOpen ? 0 : -1}
                   style={{
                     transitionDelay: isOpen ? `${index * 30}ms` : "0ms",
                   }}
@@ -159,7 +269,7 @@ export default function DrawerShell({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
-          </nav>
+          </div>
 
           {/* Small, quiet — the same fox/owl line art as the footer, just
               recolored for the artwork's dark background at all times
@@ -183,7 +293,8 @@ export default function DrawerShell({ children }: { children: ReactNode }) {
           none while open so none of the page's own links/buttons can be
           triggered by accident through the sliver. Both collapse to
           `display: contents` at `md` and up, so desktop gets no wrapper
-          at all. */}
+          at all. `.drawer-card` is the one and only place a full-screen
+          minimum height is set — see globals.css. */}
       <div
         className="drawer-card relative z-10 flex flex-col bg-cream dark:bg-night md:contents"
         style={cardStyle}
@@ -209,6 +320,7 @@ export default function DrawerShell({ children }: { children: ReactNode }) {
           type="button"
           onClick={toggleDrawer}
           aria-label={isOpen ? "Close menu" : "Open menu"}
+          aria-expanded={isOpen}
           className={`flex h-11 w-11 items-center justify-center rounded-full transition-colors ${
             isOpen ? "text-cream" : "text-night dark:text-cream"
           }`}
