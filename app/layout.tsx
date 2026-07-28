@@ -4,6 +4,7 @@ import "./globals.css";
 import Background from "@/components/Background";
 import NavBar from "@/components/NavBar";
 import ConditionalFooter from "@/components/ConditionalFooter";
+import DrawerShell from "@/components/DrawerShell";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
@@ -34,10 +35,12 @@ export default function RootLayout({
       className={`${cormorant.variable} ${pinyon.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col font-sans">
-        <Background />
-        <NavBar />
-        <main className="flex flex-1 flex-col">{children}</main>
-        <ConditionalFooter />
+        <DrawerShell>
+          <Background />
+          <NavBar />
+          <main className="flex flex-1 flex-col">{children}</main>
+          <ConditionalFooter />
+        </DrawerShell>
       </body>
     </html>
   );

@@ -55,6 +55,60 @@
   }
 }
 
+/* The mobile drawer's menu sits on dark artwork regardless of the site's
+   own light/dark mode, so unlike .footer-animal above, this recolor is
+   unconditional rather than dark-mode-only. */
+.drawer-animal {
+  filter: brightness(0) invert(0.93) sepia(0.25) saturate(1.2);
+  opacity: 0.85;
+}
+
+/* Mobile drawer menu pills — styled directly (not via the site's
+   light/dark tokens) since they always sit on the same dark artwork no
+   matter which color scheme the guest's phone is in. Width and height are
+   fixed and identical on every pill on purpose, so they form a clean
+   vertical edge — a percentage width here would need a definite-width
+   parent to resolve against, which a shrink-to-fit flex item doesn't
+   provide. Tailwind's backdrop-blur utility doesn't emit the -webkit-
+   prefix Safari on iOS still needs, so that's spelled out explicitly. */
+.drawer-pill {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 240px;
+  height: 52px;
+  padding-left: 24px;
+  padding-right: 24px;
+  white-space: nowrap;
+  overflow: hidden;
+  box-sizing: border-box;
+  border-radius: 9999px;
+  background: rgba(254, 246, 238, 0.12);
+  border: 1px solid rgba(254, 246, 238, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fef6ee;
+  font-family: var(--font-heading);
+  font-size: 19px;
+  letter-spacing: 0.02em;
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease,
+    background-color 150ms ease;
+}
+
+.drawer-pill:active {
+  background: rgba(254, 246, 238, 0.22);
+  transform: scale(0.97);
+}
+
+.drawer-pill.is-active {
+  background: #81270b;
+  border-color: rgba(237, 165, 94, 0.6);
+  color: #eda55e;
+  font-weight: 600;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -115,7 +169,12 @@ body {
 /* Fixed, full-viewport artwork, pinned behind everything else via a
    negative z-index. `isolation: isolate` on body above gives this a
    well-defined stacking context to sit at the bottom of, so it can't
-   accidentally end up painted over other content. */
+   accidentally end up painted over other content. Works on mobile too:
+   while the drawer is closed the card has no transform/will-change, so
+   this anchors to the true viewport as normal; while the drawer is open
+   the card itself becomes `position: fixed; inset: 0` (viewport-sized),
+   so this still anchors to what is, at that moment, exactly the
+   viewport — no `position: absolute` workaround needed either way. */
 .site-background {
   position: fixed;
   inset: 0;
@@ -125,4 +184,15 @@ body {
   background-repeat: no-repeat;
   background-position: bottom center;
   background-size: cover;
+}
+
+/* DrawerShell's sliding card needs a real minimum height, not just a
+   percentage (min-h-full) chained up through body/html — otherwise a
+   short page like Home wouldn't fill the screen, and the drawer layer
+   behind it could peek out below the footer. dvh (falls back to vh in
+   older browsers) tracks the actual visible viewport, accounting for
+   mobile browsers showing/hiding their address bar. */
+.drawer-card {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
