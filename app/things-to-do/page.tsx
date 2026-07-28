@@ -39,12 +39,12 @@ export default async function ThingsToDoPage() {
     })) ?? [];
 
   return (
-    <PageContainer>
+    <PageContainer wide>
       <Panel className="p-8 text-center sm:p-10">
         <h1 className="font-heading text-3xl tracking-[0.15em] text-accent sm:text-4xl">
           THINGS TO DO
         </h1>
-        <p className="mt-3 text-sm leading-relaxed text-foreground/90 sm:text-base">
+        <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-foreground/90 sm:text-base">
           {"A few of our favorite spots around town, if you're making a trip of it."}
         </p>
       </Panel>
