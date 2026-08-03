@@ -55,12 +55,12 @@ export default async function TravelPage() {
     })) ?? [];
 
   return (
-    <PageContainer>
+    <PageContainer wide>
       <Panel className="p-8 text-center sm:p-10">
         <h1 className="font-heading text-3xl tracking-[0.15em] text-accent sm:text-4xl">
           TRAVEL
         </h1>
-        <p className="mt-3 text-sm leading-relaxed text-foreground/90 sm:text-base">
+        <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-foreground/90 sm:text-base">
           {introResult.data?.value ?? ""}
         </p>
       </Panel>

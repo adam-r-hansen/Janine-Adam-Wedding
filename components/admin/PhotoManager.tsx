@@ -1,6 +1,30 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type CSSProperties,
+} from "react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import Panel from "@/components/Panel";
 import { resizeImage, uploadPhoto } from "@/lib/storage";
 import { createClient } from "@/lib/supabase-browser";
@@ -8,6 +32,8 @@ import {
   addOurPhoto,
   approvePhoto,
   deletePhoto,
+  reorderPhotos,
+  updatePhotoCaption,
 } from "@/app/admin/(dashboard)/photos/actions";
 
 export interface AdminPhoto {
@@ -18,6 +44,7 @@ export interface AdminPhoto {
   uploader_name: string | null;
   approved: boolean;
   created_at: string;
+  sort_order: number | null;
   publicUrl: string;
 }
 
@@ -28,6 +55,52 @@ interface StagedFile {
   caption: string;
   status: "pending" | "resizing" | "uploading" | "done" | "error";
   error?: string;
+}
+
+// Shared caption-editing state for a single photo — used by both the
+// grid tiles (Our Photos, Approved Guest Photos) and the pending guest
+// photo cards, so the input/save/"Saved ✓" behavior stays identical in
+// all three spots.
+function useCaptionEditor(photo: AdminPhoto, onError: (message: string) => void) {
+  const [caption, setCaption] = useState(photo.caption ?? "");
+  const [isSaving, startTransition] = useTransition();
+  const [justSaved, setJustSaved] = useState(false);
+
+  useEffect(() => {
+    setCaption(photo.caption ?? "");
+  }, [photo.caption]);
+
+  function save() {
+    startTransition(async () => {
+      const result = await updatePhotoCaption(photo.id, caption);
+      if (result.error) {
+        onError(result.error);
+        return;
+      }
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 2000);
+    });
+  }
+
+  const changed = caption !== (photo.caption ?? "");
+
+  return { caption, setCaption, isSaving, justSaved, changed, save };
+}
+
+// Tracks the OS-level "reduce motion" accessibility setting so drag
+// reordering can skip its drop animation for guests/admins who have it on.
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(query.matches);
+    const handleChange = () => setPrefersReducedMotion(query.matches);
+    query.addEventListener("change", handleChange);
+    return () => query.removeEventListener("change", handleChange);
+  }, []);
+
+  return prefersReducedMotion;
 }
 
 export default function PhotoManager({
@@ -238,22 +311,17 @@ export default function PhotoManager({
             No photos yet — upload your first one above.
           </p>
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {ourPhotos.map((photo) => (
-              <PhotoTile
-                key={photo.id}
-                photo={photo}
-                isPending={isPending}
-                isConfirming={
-                  confirming?.id === photo.id && confirming.action === "delete"
-                }
-                confirmLabel="Delete this photo?"
-                onConfirm={() => setConfirming({ id: photo.id, action: "delete" })}
-                onCancel={() => setConfirming(null)}
-                onDelete={() => handleDelete(photo.id, photo.storage_path)}
-              />
-            ))}
-          </div>
+          <SortablePhotoGrid
+            photos={ourPhotos}
+            album="ours"
+            isPending={isPending}
+            confirming={confirming}
+            onConfirmDelete={(id) => setConfirming({ id, action: "delete" })}
+            onCancelDelete={() => setConfirming(null)}
+            onDelete={handleDelete}
+            onCaptionError={setError}
+            onReorderError={setError}
+          />
         )}
       </section>
 
@@ -267,80 +335,25 @@ export default function PhotoManager({
           </p>
         ) : (
           <div className="flex flex-col gap-4">
-            {pendingGuestPhotos.map((photo) => {
-              const isConfirmingReject =
-                confirming?.id === photo.id && confirming.action === "reject";
-              return (
-                <Panel
-                  key={photo.id}
-                  className="flex flex-col overflow-hidden p-0"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={photo.publicUrl}
-                    alt={photo.caption ?? "Guest photo awaiting approval"}
-                    className="max-h-96 w-full object-cover"
-                  />
-                  <div className="flex flex-col gap-2 p-4">
-                    {(photo.uploader_name || photo.caption) && (
-                      <p className="text-sm text-foreground/90">
-                        {photo.uploader_name && (
-                          <span className="font-medium">
-                            {photo.uploader_name}
-                          </span>
-                        )}
-                        {photo.uploader_name && photo.caption && " — "}
-                        {photo.caption}
-                      </p>
-                    )}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleApprove(photo.id)}
-                        disabled={isPending}
-                        className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-cream disabled:opacity-60 dark:text-night"
-                      >
-                        Approve
-                      </button>
-                      {isConfirmingReject ? (
-                        <span className="flex items-center gap-2 text-sm">
-                          <span className="text-foreground/80">
-                            Reject this?
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleDelete(photo.id, photo.storage_path)
-                            }
-                            disabled={isPending}
-                            className="rounded-full bg-dahlia px-3 py-1 font-medium text-cream disabled:opacity-60"
-                          >
-                            Yes, reject
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirming(null)}
-                            className="rounded-full px-3 py-1 font-medium text-accent hover:bg-accent/10"
-                          >
-                            Cancel
-                          </button>
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setConfirming({ id: photo.id, action: "reject" })
-                          }
-                          className="rounded-full px-4 py-2 text-sm font-medium text-accent hover:bg-accent/10"
-                        >
-                          Reject
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </Panel>
-              );
-            })}
+            {pendingGuestPhotos.map((photo) => (
+              <PendingGuestPhotoCard
+                key={photo.id}
+                photo={photo}
+                isPending={isPending}
+                isConfirmingReject={
+                  confirming?.id === photo.id && confirming.action === "reject"
+                }
+                onApprove={() => handleApprove(photo.id)}
+                onRejectClick={() =>
+                  setConfirming({ id: photo.id, action: "reject" })
+                }
+                onConfirmReject={() =>
+                  handleDelete(photo.id, photo.storage_path)
+                }
+                onCancelReject={() => setConfirming(null)}
+                onCaptionError={setError}
+              />
+            ))}
           </div>
         )}
       </section>
@@ -354,8 +367,108 @@ export default function PhotoManager({
             None approved yet.
           </p>
         ) : (
+          <SortablePhotoGrid
+            photos={approvedGuestPhotos}
+            album="guests"
+            isPending={isPending}
+            confirming={confirming}
+            onConfirmDelete={(id) => setConfirming({ id, action: "delete" })}
+            onCancelDelete={() => setConfirming(null)}
+            onDelete={handleDelete}
+            onCaptionError={setError}
+            onReorderError={setError}
+          />
+        )}
+      </section>
+    </div>
+  );
+}
+
+function SortablePhotoGrid({
+  photos,
+  album,
+  isPending,
+  confirming,
+  onConfirmDelete,
+  onCancelDelete,
+  onDelete,
+  onCaptionError,
+  onReorderError,
+}: {
+  photos: AdminPhoto[];
+  album: "ours" | "guests";
+  isPending: boolean;
+  confirming: { id: string; action: "delete" | "reject" } | null;
+  onConfirmDelete: (id: string) => void;
+  onCancelDelete: () => void;
+  onDelete: (id: string, storagePath: string) => void;
+  onCaptionError: (message: string) => void;
+  onReorderError: (message: string) => void;
+}) {
+  const [order, setOrder] = useState(photos);
+  const [, startReorderTransition] = useTransition();
+
+  // Re-seed from the server's order whenever the photo list itself
+  // changes (an upload or delete completing) — never on our own local
+  // reorders, since those pass a fresh `photos` array reference only
+  // after the server confirms the change.
+  useEffect(() => {
+    setOrder(photos);
+  }, [photos]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = order.findIndex((photo) => photo.id === active.id);
+    const newIndex = order.findIndex((photo) => photo.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const previousOrder = order;
+    const newOrder = arrayMove(order, oldIndex, newIndex);
+    setOrder(newOrder);
+
+    startReorderTransition(async () => {
+      const result = await reorderPhotos(
+        album,
+        newOrder.map((photo) => photo.id)
+      );
+      if (result.error) {
+        setOrder(previousOrder);
+        onReorderError(result.error);
+      }
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs text-foreground/60">
+        Drag a photo to change the order guests see it in on the Gallery
+        page.
+      </p>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={order.map((photo) => photo.id)}
+          strategy={rectSortingStrategy}
+        >
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {approvedGuestPhotos.map((photo) => (
+            {order.map((photo) => (
               <PhotoTile
                 key={photo.id}
                 photo={photo}
@@ -364,14 +477,15 @@ export default function PhotoManager({
                   confirming?.id === photo.id && confirming.action === "delete"
                 }
                 confirmLabel="Delete this photo?"
-                onConfirm={() => setConfirming({ id: photo.id, action: "delete" })}
-                onCancel={() => setConfirming(null)}
-                onDelete={() => handleDelete(photo.id, photo.storage_path)}
+                onConfirm={() => onConfirmDelete(photo.id)}
+                onCancel={onCancelDelete}
+                onDelete={() => onDelete(photo.id, photo.storage_path)}
+                onCaptionError={onCaptionError}
               />
             ))}
           </div>
-        )}
-      </section>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
@@ -384,6 +498,7 @@ function PhotoTile({
   onConfirm,
   onCancel,
   onDelete,
+  onCaptionError,
 }: {
   photo: AdminPhoto;
   isPending: boolean;
@@ -392,49 +507,230 @@ function PhotoTile({
   onConfirm: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  onCaptionError: (message: string) => void;
 }) {
+  const {
+    caption,
+    setCaption,
+    isSaving,
+    justSaved,
+    changed,
+    save,
+  } = useCaptionEditor(photo, onCaptionError);
+  const prefersReducedMotion = usePrefersReducedMotion();
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: photo.id,
+    transition: prefersReducedMotion ? null : undefined,
+  });
+
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={isDragging ? "z-10 opacity-70" : ""}
+    >
+      <Panel className="flex flex-col overflow-hidden p-0">
+        <div className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={photo.publicUrl}
+            alt={photo.caption ?? "Photo"}
+            className="aspect-square w-full object-cover"
+          />
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            aria-label="Drag to reorder"
+            className="absolute right-1.5 top-1.5 flex h-11 w-11 touch-none items-center justify-center rounded-full bg-night/50 text-lg text-cream hover:bg-night/70"
+          >
+            ⠿
+          </button>
+        </div>
+        <div className="flex flex-col gap-2 p-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Add a caption"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              disabled={isSaving}
+              className="min-w-0 flex-1 rounded-lg border border-dahlia/20 bg-cream px-2 py-1 text-xs text-foreground dark:border-cream/20 dark:bg-night"
+            />
+            {changed && (
+              <button
+                type="button"
+                onClick={save}
+                disabled={isSaving}
+                className="shrink-0 rounded-full bg-accent px-2 py-1 text-xs font-medium text-cream disabled:opacity-60 dark:text-night"
+              >
+                {isSaving ? "Saving…" : "Save"}
+              </button>
+            )}
+            {justSaved && !changed && (
+              <span className="shrink-0 text-xs text-foreground/70">
+                Saved ✓
+              </span>
+            )}
+          </div>
+          {isConfirming ? (
+            <div className="flex flex-wrap items-center gap-1 text-xs">
+              <span className="text-foreground/80">{confirmLabel}</span>
+              <button
+                type="button"
+                onClick={onDelete}
+                disabled={isPending}
+                className="rounded-full bg-dahlia px-2 py-0.5 font-medium text-cream disabled:opacity-60"
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="rounded-full px-2 py-0.5 font-medium text-accent hover:bg-accent/10"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="w-fit rounded-full px-2 py-0.5 text-xs font-medium text-accent hover:bg-accent/10"
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+function PendingGuestPhotoCard({
+  photo,
+  isPending,
+  isConfirmingReject,
+  onApprove,
+  onRejectClick,
+  onConfirmReject,
+  onCancelReject,
+  onCaptionError,
+}: {
+  photo: AdminPhoto;
+  isPending: boolean;
+  isConfirmingReject: boolean;
+  onApprove: () => void;
+  onRejectClick: () => void;
+  onConfirmReject: () => void;
+  onCancelReject: () => void;
+  onCaptionError: (message: string) => void;
+}) {
+  const {
+    caption,
+    setCaption,
+    isSaving,
+    justSaved,
+    changed,
+    save,
+  } = useCaptionEditor(photo, onCaptionError);
+
   return (
     <Panel className="flex flex-col overflow-hidden p-0">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={photo.publicUrl}
-        alt={photo.caption ?? "Photo"}
-        className="aspect-square w-full object-cover"
+        alt={photo.caption ?? "Guest photo awaiting approval"}
+        className="max-h-96 w-full object-cover"
       />
-      <div className="flex flex-col gap-1 p-3">
-        {photo.caption && (
-          <p className="truncate text-xs text-foreground/80">
+      <div className="flex flex-col gap-2 p-4">
+        {(photo.uploader_name || photo.caption) && (
+          <p className="text-sm text-foreground/90">
+            {photo.uploader_name && (
+              <span className="font-medium">{photo.uploader_name}</span>
+            )}
+            {photo.uploader_name && photo.caption && " — "}
             {photo.caption}
           </p>
         )}
-        {isConfirming ? (
-          <div className="flex flex-wrap items-center gap-1 text-xs">
-            <span className="text-foreground/80">{confirmLabel}</span>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Add a caption"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            disabled={isSaving}
+            className="min-w-0 flex-1 rounded-lg border border-dahlia/20 bg-cream px-2 py-1 text-sm text-foreground dark:border-cream/20 dark:bg-night"
+          />
+          {changed && (
             <button
               type="button"
-              onClick={onDelete}
-              disabled={isPending}
-              className="rounded-full bg-dahlia px-2 py-0.5 font-medium text-cream disabled:opacity-60"
+              onClick={save}
+              disabled={isSaving}
+              className="shrink-0 rounded-full bg-accent px-3 py-1 text-xs font-medium text-cream disabled:opacity-60 dark:text-night"
             >
-              Yes
+              {isSaving ? "Saving…" : "Save"}
             </button>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-full px-2 py-0.5 font-medium text-accent hover:bg-accent/10"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
+          )}
+          {justSaved && !changed && (
+            <span className="shrink-0 text-xs text-foreground/70">
+              Saved ✓
+            </span>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={onConfirm}
-            className="w-fit rounded-full px-2 py-0.5 text-xs font-medium text-accent hover:bg-accent/10"
+            onClick={onApprove}
+            disabled={isPending}
+            className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-cream disabled:opacity-60 dark:text-night"
           >
-            Delete
+            Approve
           </button>
-        )}
+          {isConfirmingReject ? (
+            <span className="flex items-center gap-2 text-sm">
+              <span className="text-foreground/80">Reject this?</span>
+              <button
+                type="button"
+                onClick={onConfirmReject}
+                disabled={isPending}
+                className="rounded-full bg-dahlia px-3 py-1 font-medium text-cream disabled:opacity-60"
+              >
+                Yes, reject
+              </button>
+              <button
+                type="button"
+                onClick={onCancelReject}
+                className="rounded-full px-3 py-1 font-medium text-accent hover:bg-accent/10"
+              >
+                Cancel
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={onRejectClick}
+              className="rounded-full px-4 py-2 text-sm font-medium text-accent hover:bg-accent/10"
+            >
+              Reject
+            </button>
+          )}
+        </div>
       </div>
     </Panel>
   );

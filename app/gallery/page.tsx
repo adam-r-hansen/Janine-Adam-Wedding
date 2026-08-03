@@ -42,6 +42,7 @@ export default async function GalleryPage() {
     .from("photos")
     .select("id, storage_path, caption, album, uploader_name")
     .eq("approved", true)
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false })
     .returns<PhotoRow[]>();
 

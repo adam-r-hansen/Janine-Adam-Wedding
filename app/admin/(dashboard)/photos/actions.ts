@@ -18,15 +18,68 @@ export async function addOurPhoto(formData: FormData) {
   }
 
   const supabase = await createClient();
+
+  const { data: lastPhoto } = await supabase
+    .from("photos")
+    .select("sort_order")
+    .eq("album", "ours")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextSortOrder = (lastPhoto?.sort_order ?? 0) + 1;
+
   const { error } = await supabase.from("photos").insert({
     storage_path: storagePath,
     caption: caption || null,
     album: "ours",
     approved: true,
+    sort_order: nextSortOrder,
   });
 
   if (error) {
     return { error: "Could not save that photo. Please try again." };
+  }
+
+  refreshPhotoPages();
+  return { error: null };
+}
+
+export async function updatePhotoCaption(id: string, caption: string) {
+  const trimmed = caption.trim();
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("photos")
+    .update({ caption: trimmed || null })
+    .eq("id", id);
+
+  if (error) {
+    return { error: "Could not save that caption. Please try again." };
+  }
+
+  refreshPhotoPages();
+  return { error: null };
+}
+
+export async function reorderPhotos(
+  album: "ours" | "guests",
+  orderedIds: string[]
+) {
+  const supabase = await createClient();
+
+  const results = await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase
+        .from("photos")
+        .update({ sort_order: index + 1 })
+        .eq("id", id)
+        .eq("album", album)
+    )
+  );
+
+  if (results.some((result) => result.error)) {
+    return { error: "Could not save the new order. Please try again." };
   }
 
   refreshPhotoPages();

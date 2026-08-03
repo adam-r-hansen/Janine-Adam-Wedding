@@ -15,6 +15,7 @@ interface PhotoRow {
   uploader_name: string | null;
   approved: boolean;
   created_at: string;
+  sort_order: number | null;
 }
 
 export default async function AdminPhotosPage() {
@@ -22,8 +23,9 @@ export default async function AdminPhotosPage() {
   const { data, error } = await supabase
     .from("photos")
     .select(
-      "id, storage_path, caption, album, uploader_name, approved, created_at"
+      "id, storage_path, caption, album, uploader_name, approved, created_at, sort_order"
     )
+    .order("sort_order", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false })
     .returns<PhotoRow[]>();
 
