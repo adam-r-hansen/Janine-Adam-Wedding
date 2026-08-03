@@ -134,7 +134,11 @@ query passthrough:
 - `guests` — party_id, full_name, attending (null | true | false),
   dietary_notes
 - `photos` — storage_path, caption, album ('ours' | 'guests'), uploader_name,
-  approved (boolean, default false), created_at
+  approved (boolean, default false), created_at, sort_order (nullable
+  integer — new photos arrive with a null sort_order and therefore sort to
+  the bottom until an admin drags them, which is intentional; added via
+  `add-photo-sort-order.sql`, run manually in the SQL Editor like every
+  other schema change)
 - `guestbook_entries` — author_name (max 100 chars), message (max 1000
   chars), approved (boolean, default false), created_at. RLS mirrors
   `photos`: anon may SELECT only approved rows and INSERT only with
@@ -296,6 +300,14 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
       shared resize/upload/delete helpers used by all upload flows. Photo
       captions show in the lightbox now, in both the guest-photo
       ("Caption — Uploader" / "Shared by Uploader") and "ours" forms.
+      Admins can also edit any photo's caption in place from
+      `/admin/photos` (both photo tiles and the pending-approval cards),
+      and can drag to reorder both the Our Photos and Approved Guest
+      Photos grids — that order is what guests see on `/gallery`. Drag
+      reordering uses `@dnd-kit` (`core`, `sortable`, `utilities`) with a
+      200ms touch-hold delay before a drag starts, so the page still
+      scrolls normally under a finger — important since Janine manages
+      content from her phone.
 - [x] Guestbook — `/guestbook` (name + note form, direct anon insert via
       `lib/supabase.ts` — same trusted anon-write path as the guest photo
       upload) and `/admin/guestbook` (Awaiting Approval / Approved,
