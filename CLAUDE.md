@@ -54,11 +54,16 @@ It must be beautiful, simple, and flawless on mobile (most guests will visit on 
    should feel personal — the blurbs are the couple's voice.
 5. `/faq` — question/answer pairs, ordered.
 6. `/rsvp` — guest-list lookup flow (see RSVP section below).
-7. `/honeymoon` — short page: intro paragraph plus one prominent button
-   linking out to the HoneyFund (honeymoon fund in lieu of a traditional
-   registry). Content from `site_settings` (`registry_intro`,
-   `registry_url` — key names kept from before the page was renamed from
-   "Registry" to "Honeymoon"; nothing user-facing says "registry").
+7. `/honeymoon` — the honeymoon fund page (in lieu of a traditional
+   registry). Editable intro paragraph, then a checklist of "experiences"
+   guests tick, an optional "send whatever amount feels right" custom
+   amount, a running "Your gift" total, and a name + optional message.
+   Submitting records a pending contribution and hands the guest off to
+   Venmo. Content from `site_settings` (`registry_intro` — key name
+   predates the page being renamed from "Registry" to "Honeymoon";
+   nothing user-facing says "registry" — plus `venmo_username` and
+   `honeymoon_payment_note`). See "Honeymoon fund" below. The old
+   `registry_url` HoneyFund link is retired.
 8. `/gallery` — two sections: "Our photos" and "Guest photos". Guests can
    upload; uploads are hidden until approved in admin. Captions show in the
    lightbox (cream text, centered, below the enlarged photo).
@@ -67,8 +72,10 @@ It must be beautiful, simple, and flawless on mobile (most guests will visit on 
    notes show newest-first with a friendly date.
 10. `/enter-password` — the shared-password gate. Warm, on-brand, one field.
 11. `/admin` — dashboard behind Supabase Auth login. Tabs: Settings, Events,
-    Hotels, Things to Do, FAQs, Guest List, RSVPs, Photos (approval queue +
-    upload), Guestbook (approval queue). Every content type gets
+    Hotels, Things to Do, Honeymoon (the fund's experiences —
+    add/edit/hide/delete/reorder), Gifts (the contributions dashboard —
+    see "Honeymoon fund" below), FAQs, Guest List, RSVPs, Photos (approval
+    queue + upload), Guestbook (approval queue). Most content types get
     add/edit/delete/reorder.
 
 ## RSVP model (guest-list lookup, not open form)
@@ -117,12 +124,93 @@ query passthrough:
   `guests` through the same cookie-based `lib/supabase-server.ts` client
   every other admin page uses, since RLS already permits admin reads.
 
+## Honeymoon fund
+
+The `/honeymoon` page replaced the old "one button to HoneyFund" page.
+Guests build a gift out of the couple's own suggestions and pay through
+Venmo. `registry_url` is gone.
+
+### Experiences are buckets, not inventory
+
+The rows in `honeymoon_items` ("a night in a mountain cabin", "dinner
+out in Reykjavik") are **funding buckets**, not things for sale. They
+never sell out, are never reserved, and any number of guests can put
+money toward the same one. Do not add "claimed" / "remaining" / "only
+one left" logic — that's a different, worse page.
+
+`goal_cents` exists in the schema but is **deliberately unused**. There
+are no progress bars anywhere, by design: a fundraising thermometer
+turns a warm "here are some ideas if you asked" page into a campaign
+with a target, and that's the wrong tone for a wedding. Leave it null;
+don't build UI on it without an explicit decision to change the tone.
+
+### The site cannot confirm payment
+
+Venmo has no API for personal accounts, so the site has **no way to know
+a payment actually arrived**. The flow works around that:
+
+- Submitting the form inserts a row into `honeymoon_contributions` with
+  `status = 'pending'`. That's all the site can assert — "a guest said
+  they're sending this".
+- Each contribution gets a 5-character **claim code** from the alphabet
+  `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (no `0/O/1/I/L` — it has to survive
+  being read off one phone and typed into another). It goes into the
+  Venmo note as `Janine & Adam honeymoon - {code}`.
+- An admin works `/admin/contributions` ("Gifts" tab): a Venmo
+  notification comes in, they search the code or the name, tap **Mark
+  received** (`status = 'received'`, `received_at = now()`). A separate
+  **thank-you sent** checkbox (`thanked_at`) tracks follow-up. There's a
+  **Move back to pending** undo and a **Cancel this one** for gifts that
+  never turn up. The three summary figures (received total, pending
+  total, received-but-not-thanked count) all key off `status` /
+  `thanked_at`, so they only ever reflect what an admin has confirmed.
+- Every label that touches "received" says, in some form, that it means
+  *an admin confirmed the Venmo payment landed* — never let the UI imply
+  the site verified anything.
+
+### Anon may INSERT into `honeymoon_contributions`, never SELECT
+
+Same trusted-anon-write pattern as guest photos and the guestbook — but
+with a tighter read rule. Anon can INSERT (RLS `WITH CHECK` requires
+`status = 'pending'`, `received_at` null, `thanked_at` null) and can
+**never SELECT**. Guests must not be able to browse what other guests
+gave. `honeymoon_contribution_lines` is the same: anon INSERT only.
+
+Consequence for code: `.insert().select()` **will fail** on those tables
+(the `.select()` half is a blocked read). So the public Server Action
+(`app/honeymoon/actions.ts`) generates the row id itself with
+`crypto.randomUUID()`, passes it into the insert, and reuses that id for
+the line rows. The admin Gifts dashboard reads both tables normally
+through the cookie-based `lib/supabase-server.ts` client, since RLS lets
+authenticated users read everything.
+
+### Never navigate to Venmo programmatically
+
+iOS Safari blocks `window.open` / `location.assign` to an external app
+when it happens after an `await` (the tap's "user gesture" has expired
+by then). So the confirmation panel does **not** redirect. It shows a
+real `<a href>` the guest taps themselves, plus the handle, the amount,
+and the note (with the claim code) as plain selectable text for anyone
+whose link doesn't open. Keep it that way.
+
+### Copy rules for `/honeymoon`
+
+The page has to read as a response to guests who *asked* for a way to
+give — not a request, and definitely not a store. Never use the words
+**Cart, Checkout, Buy, Purchase, Price, Subtotal, or Order** anywhere on
+it. Amounts are "suggested" (`$210 suggested`). The running total is
+**"Your gift"**, never "Total" or "Subtotal". The page ends on a line
+that lets people off the hook entirely.
+
 ## Database tables
 
 - `site_settings` — key/value: hero photo, welcome text, date, venue, password
-  hints, etc. Includes `registry_intro` and `registry_url` (the Honeymoon
-  page's intro paragraph and HoneyFund link — key names predate the page
-  being renamed from "Registry" to "Honeymoon").
+  hints, etc. Honeymoon-page keys: `registry_intro` (the intro paragraph
+  — key name predates the "Registry" → "Honeymoon" rename), `venmo_username`
+  (the couple's Venmo handle, stored **without** the leading `@` so the
+  payment link builds cleanly), and `honeymoon_payment_note` (optional
+  small print shown on the confirmation panel). The old `registry_url`
+  key is retired — nothing reads it.
 - `events` — title, date, start_time, end_time, venue_name, address,
   description, dress_code, sort_order
 - `hotels` — name, photo_url, description, address (optional), distance,
@@ -146,6 +234,39 @@ query passthrough:
   via `create-guestbook-table.sql` (run manually in the SQL Editor, same
   as every other schema change — see "Supabase project + tables + RLS"
   below).
+- `honeymoon_items` — title (≤120), blurb (nullable, ≤500), photo_url
+  (nullable), suggested_cents (integer, >0), goal_cents (nullable,
+  deliberately unused — see "Honeymoon fund"), is_active (boolean,
+  default true — the "hidden from guests" toggle in admin), sort_order
+  (nullable integer, nulls sort last), created_at. Amounts are stored as
+  **integer cents**, never floats; `lib/format.ts` has the paired
+  `formatCurrencyFromCents` / `parseDollarsToCents` helpers — don't write
+  another.
+- `honeymoon_contributions` — claim_code (text, unique, 4–8 chars — see
+  "Honeymoon fund" for the alphabet), guest_name (≤120; the form inserts
+  `"Anonymous"` when a guest leaves it blank, since the column is NOT
+  NULL), guest_email (nullable, kept in the schema but the form no longer
+  collects it), message (nullable, ≤1000), amount_cents (integer, >0 —
+  the server recomputes this from the ticked items' `suggested_cents`
+  plus the custom amount; the browser's number is never trusted), status
+  (`'pending' | 'received' | 'cancelled'`, default `'pending'`),
+  received_at, thanked_at, created_at. RLS: anon may INSERT only (with
+  `status = 'pending'` and `received_at` / `thanked_at` null) and may
+  **never SELECT**; authenticated has full access.
+- `honeymoon_contribution_lines` — contribution_id (FK, `ON DELETE
+  CASCADE`), item_id (nullable FK to `honeymoon_items`, `ON DELETE SET
+  NULL`), item_title (≤120, a snapshot taken at submit time so a later
+  edit to the item doesn't rewrite history), amount_cents. One row per
+  ticked experience, plus one with `item_id` null and title
+  `"Their own amount"` for the custom amount. Same RLS as
+  `honeymoon_contributions` (anon INSERT only, no SELECT). If the line
+  inserts fail the Server Action still returns success — the headline
+  `amount_cents` is the number that matters.
+- The three `honeymoon_*` tables were created via
+  `create-honeymoon-fund-tables.sql` (repo root), run manually in the
+  Supabase SQL Editor like every other schema change. That file is the
+  record of the table structure; the RLS policies were applied in the
+  dashboard.
 - Storage bucket: `photos` (public read; anon may only write into `guests/`;
   authenticated has full access), with three folders:
   - `ours/` — admin-uploaded wedding photos (`/admin/photos`)
@@ -190,6 +311,11 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
 - Golden `#EDA55E` — badges, highlights, subtle warmth.
 - Muted pine `#474930` — quiet secondary; success/confirmed states.
 - Dark mode is mandatory and first-class. Every screen must be checked in both.
+- Text-on-fill pairing: `bg-gold` is light in BOTH themes, so text on it
+  is `text-night` with **no `dark:` variant** (e.g. the "Send with Venmo"
+  button on `/honeymoon`, all the gold pill badges). `bg-accent` is the
+  one that flips — it's dahlia in light mode, ember in dark — so text on
+  it is `text-cream dark:text-night`.
 
 ### Typography
 - Headings: Cormorant Garamond (Google Fonts) — often letter-spaced capitals,
@@ -315,4 +441,18 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
       upload step since there's no file involved). `guestbook_entries`
       table + RLS created via `create-guestbook-table.sql`, mirroring the
       `photos` moderation model exactly.
+- [x] Honeymoon fund — the `/honeymoon` fund page (experience checklist +
+      custom amount + Venmo handoff), the admin **Honeymoon** editor
+      (`/admin/honeymoon` — add/edit/hide/delete/reorder the experiences,
+      dnd-kit with the 200ms touch delay like Photos), and the admin
+      **Gifts** dashboard (`/admin/contributions` — mark received / undo /
+      cancel, thank-you tracking, search by claim code or name, delete
+      behind a confirmation). Retired the "Visit Our HoneyFund" button
+      and its `registry_url` setting; added `venmo_username` and
+      `honeymoon_payment_note` to Settings. `create-honeymoon-fund-tables.sql`
+      (repo root) was run manually in the Supabase SQL Editor like every
+      other schema change; RLS policies applied in the dashboard. See
+      "Honeymoon fund" above for the buckets-not-inventory model, why
+      there are no progress bars, the claim-code / can't-confirm-payment
+      flow, and the anon-INSERT-never-SELECT rule.
 - [ ] Deploy to Vercel, custom domain, guest password set

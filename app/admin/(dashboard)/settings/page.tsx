@@ -12,7 +12,8 @@ const SETTINGS_KEYS = [
   "travel_intro",
   "wedding_datetime",
   "registry_intro",
-  "registry_url",
+  "venmo_username",
+  "honeymoon_payment_note",
 ] as const;
 
 interface SettingRow {
@@ -34,7 +35,8 @@ export default async function AdminSettingsPage() {
     travel_intro: "",
     wedding_datetime: "",
     registry_intro: "",
-    registry_url: "",
+    venmo_username: "",
+    honeymoon_payment_note: "",
     ...Object.fromEntries((data ?? []).map((row) => [row.key, row.value])),
   };
 

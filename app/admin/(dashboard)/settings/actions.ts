@@ -16,7 +16,13 @@ export async function updateSettings(formData: FormData) {
   const travelIntro = String(formData.get("travel_intro") ?? "").trim();
   const weddingDateTime = String(formData.get("wedding_datetime") ?? "").trim();
   const registryIntro = String(formData.get("registry_intro") ?? "").trim();
-  const registryUrl = String(formData.get("registry_url") ?? "").trim();
+  // Stored without a leading "@" so the Venmo link builds cleanly.
+  const venmoUsername = String(formData.get("venmo_username") ?? "")
+    .trim()
+    .replace(/^@/, "");
+  const honeymoonPaymentNote = String(
+    formData.get("honeymoon_payment_note") ?? ""
+  ).trim();
 
   if (
     !welcomeMessage ||
@@ -24,9 +30,9 @@ export async function updateSettings(formData: FormData) {
     !travelIntro ||
     !weddingDateTime ||
     !registryIntro ||
-    !registryUrl
+    !venmoUsername
   ) {
-    return { error: "Please fill in every field." };
+    return { error: "Please fill in every field except the payment note." };
   }
 
   // The date picker gives a value like "2026-10-17T18:00" with no
@@ -58,7 +64,8 @@ export async function updateSettings(formData: FormData) {
       { key: "wedding_datetime", value: weddingDatetimeIso },
       { key: "wedding_date_label", value: weddingDateLabel },
       { key: "registry_intro", value: registryIntro },
-      { key: "registry_url", value: registryUrl },
+      { key: "venmo_username", value: venmoUsername },
+      { key: "honeymoon_payment_note", value: honeymoonPaymentNote },
     ],
     { onConflict: "key" }
   );

@@ -8,6 +8,8 @@ const tabs = [
   { href: "/admin/events", label: "Events", enabled: true },
   { href: "/admin/hotels", label: "Hotels", enabled: true },
   { href: "/admin/things-to-do", label: "Things to Do", enabled: true },
+  { href: "/admin/honeymoon", label: "Honeymoon", enabled: true },
+  { href: "/admin/contributions", label: "Gifts", enabled: true },
   { href: "/admin/faqs", label: "FAQs", enabled: true },
   { href: "/admin/guest-list", label: "Guest List", enabled: true },
   { href: "/admin/rsvps", label: "RSVPs", enabled: true },

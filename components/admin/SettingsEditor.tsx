@@ -10,7 +10,8 @@ export interface AdminSettings {
   travel_intro: string;
   wedding_datetime: string;
   registry_intro: string;
-  registry_url: string;
+  venmo_username: string;
+  honeymoon_payment_note: string;
 }
 
 const inputClasses =
@@ -114,9 +115,9 @@ export default function SettingsEditor({
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-foreground/80">
-            Registry message
+            Honeymoon intro
             <span className="ml-1 font-normal text-foreground/60">
-              (shown on the Honeymoon page)
+              (the paragraph at the top of the Honeymoon page)
             </span>
           </span>
           <textarea
@@ -130,16 +131,30 @@ export default function SettingsEditor({
 
         <label className="flex flex-col gap-1 text-sm">
           <span className="font-medium text-foreground/80">
-            Registry link (HoneyFund URL)
+            Venmo handle
             <span className="ml-1 font-normal text-foreground/60">
-              (the button on the Honeymoon page opens this)
+              (goes in without the @, e.g. Janine-Deegan)
             </span>
           </span>
           <input
-            type="url"
-            name="registry_url"
-            defaultValue={settings.registry_url}
+            name="venmo_username"
+            defaultValue={settings.venmo_username}
             required
+            className={inputClasses}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium text-foreground/80">
+            Honeymoon payment note
+            <span className="ml-1 font-normal text-foreground/60">
+              (small print shown after someone sends a gift, optional)
+            </span>
+          </span>
+          <textarea
+            name="honeymoon_payment_note"
+            defaultValue={settings.honeymoon_payment_note}
+            rows={3}
             className={inputClasses}
           />
         </label>
