@@ -10,8 +10,9 @@ import { createClient } from "@supabase/supabase-js";
 // SUPABASE_SERVICE_ROLE_KEY can never end up in a browser bundle.
 //
 // Only ever call this from the tightly-scoped functions in
-// app/rsvp/actions.ts — never add a generic "run any query" helper on
-// top of it.
+// app/rsvp/actions.ts and app/seating/actions.ts (which share the name
+// search in lib/guest-search.ts) — never add a generic "run any query"
+// helper on top of it.
 export function createServiceClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;

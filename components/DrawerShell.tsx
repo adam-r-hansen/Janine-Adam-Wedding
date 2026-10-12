@@ -11,7 +11,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { links } from "@/components/NavBar";
+import { getNavLinks } from "@/components/NavBar";
 
 const TRANSITION_MS = 420;
 
@@ -36,8 +36,18 @@ function getReducedMotionServerSnapshot() {
 // time. Desktop (`md` and up) is untouched: both wrapper divs collapse to
 // `display: contents`, meaning they generate no box at all and `children`
 // renders exactly as if DrawerShell didn't exist.
-export default function DrawerShell({ children }: { children: ReactNode }) {
+//
+// showSeating comes from the root layout (the "Publish seating chart"
+// switch at /admin/seating) and decides whether "Seating" is in the menu.
+export default function DrawerShell({
+  children,
+  showSeating,
+}: {
+  children: ReactNode;
+  showSeating: boolean;
+}) {
   const pathname = usePathname();
+  const links = getNavLinks(showSeating);
   const previousPathnameRef = useRef(pathname);
   const [isOpen, setIsOpen] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);

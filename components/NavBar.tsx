@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Exported so DrawerShell's mobile menu can reuse the exact same list of
-// pages instead of keeping a second copy that could drift out of sync.
-export const links = [
+const allLinks = [
   { href: "/", label: "Home" },
   { href: "/schedule", label: "Schedule" },
+  { href: "/seating", label: "Seating" },
   { href: "/travel", label: "Travel" },
   { href: "/things-to-do", label: "Things to Do" },
   { href: "/faq", label: "FAQ" },
@@ -16,6 +15,16 @@ export const links = [
   { href: "/gallery", label: "Gallery" },
   { href: "/guestbook", label: "Guestbook" },
 ];
+
+// Exported so DrawerShell's mobile menu can reuse the exact same list of
+// pages instead of keeping a second copy that could drift out of sync.
+// "Seating" only appears once an admin flips "Publish seating chart" on
+// at /admin/seating (the root layout reads that setting and passes it in).
+export function getNavLinks(showSeating: boolean) {
+  return showSeating
+    ? allLinks
+    : allLinks.filter((link) => link.href !== "/seating");
+}
 
 // The bar's own height (h-14) always renders, at every screen size, so the
 // page never jumps as its contents change. At `md` and up it shows the
@@ -29,8 +38,9 @@ export const links = [
 // the drawer's own dark artwork layer, so any translucency here would let
 // that layer tint through. At `md` and up (outside the card entirely) the
 // original translucent, blurred look over the mountain background returns.
-export default function NavBar() {
+export default function NavBar({ showSeating }: { showSeating: boolean }) {
   const pathname = usePathname();
+  const links = getNavLinks(showSeating);
 
   return (
     <nav className="sticky top-0 z-10 border-b border-dahlia/10 bg-cream dark:border-cream/10 dark:bg-night md:bg-cream/80 md:backdrop-blur-md md:dark:bg-night/80">

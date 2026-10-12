@@ -74,9 +74,14 @@ It must be beautiful, simple, and flawless on mobile (most guests will visit on 
 11. `/admin` — dashboard behind Supabase Auth login. Tabs: Settings, Events,
     Hotels, Things to Do, Honeymoon (the fund's experiences —
     add/edit/hide/delete/reorder), Gifts (the contributions dashboard —
-    see "Honeymoon fund" below), FAQs, Guest List, RSVPs, Photos (approval
-    queue + upload), Guestbook (approval queue). Most content types get
-    add/edit/delete/reorder.
+    see "Honeymoon fund" below), FAQs, Guest List, RSVPs, Seating (assign
+    confirmed parties to tables — see "Seating chart" below), Photos
+    (approval queue + upload), Guestbook (approval queue). Most content
+    types get add/edit/delete/reorder.
+12. `/seating` — "Find Your Table": a guest types their name and sees
+    their table number. Hidden until an admin flips "Publish seating
+    chart" on; until then the page says seating will be posted soon and
+    "Seating" is left out of the nav. See "Seating chart" below.
 
 ## RSVP model (guest-list lookup, not open form)
 
@@ -105,9 +110,24 @@ flow therefore cannot use the anon or cookie-based clients; it goes through
 imported into a Client Component — the one time this was tested on purpose
 (a throwaway client-side import), the build correctly refused to compile.
 
-Every use of that service-role client lives in `app/rsvp/actions.ts`
-(Server Actions) and is scoped as narrowly as possible — never a generic
-query passthrough:
+The service-role client is used in exactly two places, both Server
+Actions: `app/rsvp/actions.ts` (the RSVP flow) and `app/seating/actions.ts`
+(the "Find Your Table" lookup — see "Seating chart" below). Each is scoped
+as narrowly as possible — never a generic query passthrough. Don't add a
+third caller without a good reason.
+
+Both share one name search, `lib/guest-search.ts` (also `import
+"server-only"`). Its `findMatchingParties(supabase, query, {
+attendingOnly })` only answers "which parties match this name, and how
+closely" — a map of party id → match distance (0 = exact/prefix). It runs
+in two tiers: a case-insensitive substring match first; only if that finds
+nothing, a typo-tolerant fallback in plain TypeScript (accent/apostrophe/
+hyphen-insensitive, prefix matches, plus a length-scaled Levenshtein edit
+budget, so "Janene" finds "Janine"). Queries under 3 characters return
+nothing; callers cap at `MAX_RESULTS` (8). Each caller then decides,
+narrowly, what to fetch and show about the matched parties.
+
+In `app/rsvp/actions.ts`:
 - `searchParties(query)` — the fuzzy, multi-party search. Returns only
   `{ partyId, label, firstNames }` per match, **never** attending status,
   dietary notes, or full surnames — a search match isn't proof the
@@ -123,6 +143,41 @@ query passthrough:
   client — it's a normal authenticated admin page, reading `parties`/
   `guests` through the same cookie-based `lib/supabase-server.ts` client
   every other admin page uses, since RLS already permits admin reads.
+
+## Seating chart
+
+Each party sits together at one table: `parties.table_number` (nullable
+integer; null = unassigned). Seating is per party, not per guest.
+
+Three `site_settings` keys drive it:
+- `seating_table_count` — how many tables exist (Table 1..N). Not editable
+  in admin; set it directly in Supabase. If it's missing or zero, the
+  admin page says so and offers no tables.
+- `seating_seats_per_table` — capacity, chosen in admin from a dropdown
+  limited to 4–8 (`lib/seating.ts` holds `MIN_SEATS_PER_TABLE` /
+  `MAX_SEATS_PER_TABLE`, shared by the dropdown and its Server Action).
+- `seating_published` — the "Publish seating chart" switch. Only the exact
+  string `"true"` counts as published; a missing row means hidden.
+
+Admin (`/admin/seating`, normal cookie-based admin client): lists only
+**confirmed** parties (at least one guest `attending = true`), and only
+attending guests count toward a table's seats. A dropdown per party picks
+a table or "Unassigned"; each table shows its headcount and an
+"Over by N" warning if it's past capacity (a warning, not a block). The
+Server Action re-checks the table number against `seating_table_count`
+rather than trusting the dropdown. Toggling publish also revalidates the
+root layout so the nav link appears/disappears everywhere.
+
+Public (`/seating` + `app/seating/actions.ts`'s `findTable(query)`, via
+the service-role client): re-checks `seating_published` itself before
+doing anything (the action can be called directly, not just from the
+page), searches with `findMatchingParties(..., { attendingOnly: true })`,
+and returns only `{ names, tableNumber }` per match — attending guests'
+names and the table number. Never party labels, ids, dietary notes,
+messages, or guests who aren't coming. The root layout (`app/layout.tsx`)
+reads `seating_published` and passes `showSeating` to `NavBar` and
+`DrawerShell`, which both build their links from `getNavLinks(showSeating)`
+in `components/NavBar.tsx`.
 
 ## Honeymoon fund
 
@@ -210,7 +265,8 @@ that lets people off the hook entirely.
   (the couple's Venmo handle, stored **without** the leading `@` so the
   payment link builds cleanly), and `honeymoon_payment_note` (optional
   small print shown on the confirmation panel). The old `registry_url`
-  key is retired — nothing reads it.
+  key is retired — nothing reads it. Seating keys: `seating_table_count`,
+  `seating_seats_per_table`, `seating_published` (see "Seating chart").
 - `events` — title, date, start_time, end_time, venue_name, address,
   description, dress_code, sort_order
 - `hotels` — name, photo_url, description, address (optional), distance,
@@ -218,7 +274,8 @@ that lets people off the hook entirely.
 - `activities` — name, category ('activity' | 'food_drink'), photo_url, blurb,
   address (optional), neighborhood, link_url, sort_order
 - `faqs` — question, answer, sort_order
-- `parties` — label, responded_at
+- `parties` — label, responded_at, message, table_number (nullable
+  integer, null = unassigned — see "Seating chart")
 - `guests` — party_id, full_name, attending (null | true | false),
   dietary_notes
 - `photos` — storage_path, caption, album ('ours' | 'guests'), uploader_name,
@@ -455,4 +512,12 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
       "Honeymoon fund" above for the buckets-not-inventory model, why
       there are no progress bars, the claim-code / can't-confirm-payment
       flow, and the anon-INSERT-never-SELECT rule.
+- [x] Seating chart — the admin **Seating** editor (`/admin/seating` —
+      assign confirmed parties to tables, seats-per-table, publish
+      switch) and the public `/seating` "Find Your Table" lookup, hidden
+      from guests and the nav until published. The RSVP name search was
+      pulled out of `app/rsvp/actions.ts` into `lib/guest-search.ts` so
+      both lookups share it. `parties.table_number` and the three
+      `seating_*` settings were added directly in Supabase (no SQL file
+      in the repo). See "Seating chart" above.
 - [ ] Deploy to Vercel, custom domain, guest password set
