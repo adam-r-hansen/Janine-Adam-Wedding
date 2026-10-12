@@ -3,8 +3,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  GUEST_COOKIE_MAX_AGE_SECONDS,
   GUEST_COOKIE_NAME,
+  GUEST_COOKIE_OPTIONS,
   hashPassword,
 } from "@/lib/guest-access";
 
@@ -24,13 +24,11 @@ export async function submitGuestPassword(formData: FormData) {
   }
 
   const cookieStore = await cookies();
-  cookieStore.set(GUEST_COOKIE_NAME, await hashPassword(password), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: GUEST_COOKIE_MAX_AGE_SECONDS,
-  });
+  cookieStore.set(
+    GUEST_COOKIE_NAME,
+    await hashPassword(password),
+    GUEST_COOKIE_OPTIONS
+  );
 
   redirect(destination);
 }

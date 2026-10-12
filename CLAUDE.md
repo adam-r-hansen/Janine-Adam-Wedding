@@ -397,7 +397,9 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
 - Environment variables: `SITE_PASSWORD`, `NEXT_PUBLIC_SUPABASE_URL`,
   `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` (server-side
   only — see "The concierge" under RSVP model; never given a `NEXT_PUBLIC_`
-  prefix, only ever imported via `lib/supabase-service.ts`). Never commit
+  prefix, only ever imported via `lib/supabase-service.ts`), and
+  `GUEST_LINK_KEY` (server-side only — the QR-code magic link; see the
+  password gate entry under "Build order & status"). Never commit
   secrets; `.env.local` stays gitignored.
 
 ## Build order & status
@@ -413,6 +415,16 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
       of `SITE_PASSWORD`, not the password itself; comparison happens only
       in `proxy.ts` and the `/enter-password` Server Action, both
       server-side — `SITE_PASSWORD` is never sent to the browser.
+      **Magic link:** any URL with `?key=<GUEST_LINK_KEY>` (intended use:
+      the seating QR code, `https://janineandadam.com/seating?key=...`)
+      gets the same guest cookie, then a redirect to the same URL minus
+      `key`. A wrong/missing key, or `GUEST_LINK_KEY` unset, falls through
+      to the normal gate. It only opens the guest door — `/admin` still
+      needs Supabase login. `GUEST_LINK_KEY` is deliberately separate from
+      `SITE_PASSWORD` so printed QR codes survive a password change
+      (changing `SITE_PASSWORD` still logs everyone out, magic-link
+      visitors included, until they rescan). Cookie settings live once in
+      `lib/guest-access.ts` (`GUEST_COOKIE_OPTIONS`), shared by both doors.
 - [x] Supabase project + tables + RLS — tables were created directly in the
       Supabase dashboard's SQL Editor to match the schema above. There is no
       table-creation SQL checked into this repo; the dashboard is the source
