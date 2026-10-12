@@ -41,6 +41,36 @@ export function formatShortDate(dateStr: string): string {
   });
 }
 
+// Short form of a plain DATE column ("2026-10-12" -> "Oct 12, 2026"), e.g.
+// other_gifts.received_on. Split into parts rather than handed to
+// new Date("2026-10-12") — that parses as UTC midnight, which is the
+// previous evening in Pacific time, so the day would show one early.
+export function formatDateOnly(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+// Today's date as a "YYYY-MM-DD" string (the format a date input and a
+// DATE column both use), in the wedding's time zone rather than UTC — so
+// late on a Pacific evening it's still "today", not tomorrow.
+export function todayDateOnly(): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: WEDDING_TIME_ZONE,
+  }).formatToParts(new Date());
+  const part = (type: string) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
 export function formatTime(timeStr: string): string {
   const [hourStr, minuteStr] = timeStr.split(":");
   const hour = Number(hourStr);
