@@ -518,6 +518,7 @@ Watercolor autumn mountains, generous whitespace, elegant restraint.
       from guests and the nav until published. The RSVP name search was
       pulled out of `app/rsvp/actions.ts` into `lib/guest-search.ts` so
       both lookups share it. `parties.table_number` and the three
-      `seating_*` settings were added directly in Supabase (no SQL file
-      in the repo). See "Seating chart" above.
+      `seating_*` settings are recorded in `create-seating.sql` (repo
+      root), which was already applied to the live database — do not
+      re-run it. See "Seating chart" above.
 - [ ] Deploy to Vercel, custom domain, guest password set
